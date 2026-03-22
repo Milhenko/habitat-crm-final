@@ -9,13 +9,10 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "var(--background)",
-        foreground: "var(--foreground)",
-        secondary: "var(--secondary)",
-        accent: "var(--accent)",
-      },
-      fontFamily: {
-        sans: ["var(--font-inter)", "sans-serif"],
+        'navy-sophisticate': '#1E2D40',
+        'warm-bone': '#EBEAE6',
+        'rich-black': '#1A1A1A',
+        'absolute-white': '#FFFFFF',
       },
     },
   },
