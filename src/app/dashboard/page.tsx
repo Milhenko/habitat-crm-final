@@ -48,7 +48,7 @@ export default function DashboardPage() {
                     <h2 className="text-3xl font-black tracking-tighter uppercase italic">
                         Bienvenido, {user.name}
                     </h2>
-                    <p className="text-blue-100 mt-1 text-sm">{user.role} — CRM Habitat v2.0</p>
+                    <p className="text-blue-100 mt-1 text-sm">{user.role} — CRM Habitat v2.1</p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
