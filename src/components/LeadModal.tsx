@@ -83,7 +83,7 @@ export default function LeadModal({ lead, isOpen, onClose, column, onUpdate, can
 
         <div className="p-6 space-y-8 max-h-[70vh] overflow-y-auto">
           {/* SEGUIMIENTO ABIERTO SECTION */}
-          {(isSeguimiento || true) && (
+          {isSeguimiento && (
             <div className="space-y-4">
               <h3 className="text-sm font-bold uppercase tracking-wider text-blue-600">Seguimiento Abierto</h3>
               <div className="grid grid-cols-1 gap-4">

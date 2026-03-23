@@ -14,33 +14,14 @@ export interface User {
 interface AuthContextType {
   user: User;
   setUser: (userId: string) => void;
+  setRole: (role: Role) => void;
 }
 
 export const MOCK_USERS: User[] = [
-  {
-    id: "sa-1",
-    name: "C. Argeñal",
-    role: "Super Administrador",
-    initials: "CA",
-  },
-  {
-    id: "sa-2",
-    name: "R. Mosquera",
-    role: "Super Administrador",
-    initials: "RM",
-  },
-  {
-    id: "mkt-1",
-    name: "M. Rodríguez",
-    role: "Administrador de Marketing",
-    initials: "MR",
-  },
-  {
-    id: "asesor-1",
-    name: "J. Pérez",
-    role: "Asesor",
-    initials: "JP",
-  },
+  { id: "sa-1", name: "C. Argeñal", role: "Super Administrador", initials: "CA" },
+  { id: "sa-2", name: "R. Mosquera", role: "Super Administrador", initials: "RM" },
+  { id: "mkt-1", name: "M. Rodríguez", role: "Administrador de Marketing", initials: "MR" },
+  { id: "asesor-1", name: "J. Pérez", role: "Asesor", initials: "JP" },
 ];
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -53,8 +34,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (found) setUserState(found);
   };
 
+  const setRole = (role: Role) => {
+    const found = MOCK_USERS.find((u) => u.role === role);
+    if (found) setUserState(found);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, setUser }}>
+    <AuthContext.Provider value={{ user, setUser, setRole }}>
       {children}
     </AuthContext.Provider>
   );
