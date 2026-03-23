@@ -1,14 +1,29 @@
-import Header from "@/components/Header";
-import PropertyForm from "@/components/PropertyForm";
+page.tsx
+"use client";
+
+import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { Building2 } from "lucide-react";
 
 export default function Home() {
-  return (
-    /* Eliminamos bg-gray-50 y bg-zinc-950 para que brille el degradado que pusimos en globals.css */
-    <main className="min-h-screen py-12 px-4 sm:px-6 lg:px-8 text-rich-black">
-      <div className="max-w-[1600px] mx-auto">
-        <Header />
-        <PropertyForm />
-      </div>
-    </main>
-  );
+    const { user, loading } = useAuth();
+    const router = useRouter();
+
+    useEffect(() => {
+        if (!loading) {
+            router.push("/dashboard");
+        }
+    }, [loading, router]);
+
+    return (
+        <div className="min-h-screen flex items-center justify-center">
+            <div className="flex flex-col items-center gap-4">
+                <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg animate-pulse">
+                    <Building2 className="text-white w-8 h-8" />
+                </div>
+                <p className="text-gray-500 font-medium">Cargando CRM Habitat...</p>
+            </div>
+        </div>
+    );
 }

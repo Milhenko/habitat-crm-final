@@ -3,23 +3,23 @@
 @tailwind utilities;
 
 body {
-  color: #1A1A1A;
-  background: linear-gradient(135deg, #FFFFFF 0%, #EBEAE6 100%);
-  min-height: 100vh;
-  background-attachment: fixed;
-  margin: 0;
+    color: #1A1A1A;
+    background: linear-gradient(135deg, #FFFFFF 0%, #EBEAE6 100%);
+    min-height: 100vh;
+    background-attachment: fixed;
+    margin: 0;
 }
 
 @layer components {
-  .form-label {
-    @apply block text-xs font-bold text-gray-600 dark:text-zinc-400 uppercase tracking-wider;
-  }
+    .form-label {
+        @apply block text-xs font-bold text-gray-600 dark:text-zinc-400 uppercase tracking-wider;
+    }
 
-  .form-input {
-    @apply w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-900 dark:text-zinc-100 placeholder-gray-400 dark:placeholder-zinc-500 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors;
-  }
+    .form-input {
+        @apply w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-900 dark:text-zinc-100 placeholder-gray-400 dark:placeholder-zinc-500 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors;
+    }
 
-  .card {
-    @apply bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-sm;
-  }
+    .card {
+        @apply bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-sm;
+    }
 }

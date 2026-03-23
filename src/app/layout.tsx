@@ -1,28 +1,27 @@
-import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
-import './globals.css';
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+import { AuthProvider } from "@/context/AuthContext";
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'CRM Habitat - Captación de Inmuebles',
-  description: 'Módulo de captación de inmuebles para CRM Habitat',
+    title: "CRM Habitat",
+    description: "CRM Inmobiliario Personalizado",
 };
 
-import { AuthProvider } from '@/context/AuthContext';
-
 export default function RootLayout({
-  children,
+    children,
 }: {
-  children: React.ReactNode;
+    children: React.ReactNode;
 }) {
-  return (
-    <html lang="es">
-      <body className={`${inter.variable} font-sans antialiased bg-gray-50 dark:bg-zinc-950`}>
-        <AuthProvider>
-          {children}
-        </AuthProvider>
-      </body>
-    </html>
-  );
+    return (
+        <html lang="es">
+            <body className={inter.className}>
+                <AuthProvider>
+                    {children}
+                </AuthProvider>
+            </body>
+        </html>
+    );
 }
