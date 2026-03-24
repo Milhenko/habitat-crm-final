@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Search, Plus, Phone, Mail, Calendar, User, Building2 } from "lucide-react";
 import Link from "next/link";
+import LeadProfilePanel from "@/components/LeadProfilePanel";
 
 const ESTADOS = [
     "Lead Entrante", "Contacto Efectivo", "Aterrizaje y Opciones",
@@ -41,6 +42,7 @@ export default function ClientesPage() {
     const { user } = useAuth();
     const [busqueda, setBusqueda] = useState("");
     const [filtroEstado, setFiltroEstado] = useState("");
+    const [leadSeleccionado, setLeadSeleccionado] = useState<typeof MOCK_LEADS[0] | null>(null);
 
     const leads = MOCK_LEADS.filter(lead => {
         const matchBusqueda = lead.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
@@ -72,23 +74,14 @@ export default function ClientesPage() {
                             { label: "Inventario", href: "/inventario" },
                             { label: "Pipeline de Ventas", href: "/ventas" },
                         ].map((item) => (
-                            <Link
-                                key={item.href}
-                                href={item.href}
-                                className="px-4 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all"
-                            >
+                            <Link key={item.href} href={item.href} className="px-4 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all">
                                 {item.label}
                             </Link>
                         ))}
-
                         {canSeeMarketing && (
                             <>
-                                <Link href="/marketing" className="px-4 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all">
-                                    Marketing
-                                </Link>
-                                <Link href="/automatizacion" className="px-4 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all">
-                                    Automatización
-                                </Link>
+                                <Link href="/marketing" className="px-4 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all">Marketing</Link>
+                                <Link href="/automatizacion" className="px-4 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all">Automatización</Link>
                             </>
                         )}
                     </div>
@@ -109,11 +102,10 @@ export default function ClientesPage() {
             <main className="p-6 md:p-10">
                 <div className="max-w-[1600px] mx-auto space-y-6">
 
-                    {/* Header */}
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div>
                             <h1 className="text-2xl font-black text-[#1E2D40] tracking-tighter">
-                                Tablero de <span className="text-[#1E2D40] underline decoration-2 underline-offset-4">Contactos</span>
+                                Tablero de <span className="underline decoration-2 underline-offset-4">Contactos</span>
                             </h1>
                             <p className="text-xs text-[#1A1A1A]/50 mt-1">{leads.length} contactos encontrados</p>
                         </div>
@@ -124,7 +116,6 @@ export default function ClientesPage() {
                         )}
                     </div>
 
-                    {/* Filtros */}
                     <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm flex flex-col md:flex-row gap-3">
                         <div className="flex-1 relative">
                             <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
@@ -142,7 +133,6 @@ export default function ClientesPage() {
                         </select>
                     </div>
 
-                    {/* Tabla */}
                     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
                         <div className="overflow-x-auto">
                             <table className="w-full text-left">
@@ -161,9 +151,12 @@ export default function ClientesPage() {
                                                     <div className="w-8 h-8 rounded-full bg-[#1E2D40]/10 flex items-center justify-center text-[#1E2D40] font-bold text-xs flex-shrink-0">
                                                         {lead.nombre.charAt(0)}
                                                     </div>
-                                                    <a href={`/leads/${lead.id}`} className="font-bold text-[#1A1A1A] hover:text-[#1E2D40] transition-colors text-sm whitespace-nowrap">
+                                                    <button
+                                                        onClick={() => setLeadSeleccionado(lead)}
+                                                        className="font-bold text-[#1E2D40] hover:underline text-sm whitespace-nowrap"
+                                                    >
                                                         {lead.nombre}
-                                                    </a>
+                                                    </button>
                                                 </div>
                                             </td>
                                             <td className="px-4 py-4">
@@ -210,9 +203,12 @@ export default function ClientesPage() {
                                                 <div className="text-xs text-[#1A1A1A]/50 whitespace-nowrap">{lead.fecha_reasignacion || "—"}</div>
                                             </td>
                                             <td className="px-4 py-4">
-                                                <a href={`/leads/${lead.id}`} className="px-3 py-1.5 bg-[#1E2D40] hover:bg-[#1E2D40]/90 text-white text-[10px] font-bold rounded-lg transition-all whitespace-nowrap">
+                                                <button
+                                                    onClick={() => setLeadSeleccionado(lead)}
+                                                    className="px-3 py-1.5 bg-[#1E2D40] hover:bg-[#1E2D40]/90 text-white text-[10px] font-bold rounded-lg transition-all whitespace-nowrap"
+                                                >
                                                     Ver Perfil
-                                                </a>
+                                                </button>
                                             </td>
                                         </tr>
                                     ))}
@@ -227,6 +223,14 @@ export default function ClientesPage() {
                     </div>
                 </div>
             </main>
+
+            {/* Panel de perfil */}
+            {leadSeleccionado && (
+                <LeadProfilePanel
+                    lead={leadSeleccionado}
+                    onClose={() => setLeadSeleccionado(null)}
+                />
+            )}
         </div>
     );
 }
