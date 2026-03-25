@@ -1,24 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Search, Plus, Phone, Mail, Calendar, User, Building2 } from "lucide-react";
 import Link from "next/link";
 import LeadProfilePanel from "@/components/LeadProfilePanel";
+import { supabase } from "@/lib/supabase";
 
 const ESTADOS = [
     "Lead Entrante", "Contacto Efectivo", "Aterrizaje y Opciones",
-    "Seguimiento Abierto", "Visita Agendada", "Visita Realizada",
-    "Reserva", "Cierre Ganado", "Descartado"
-];
-
-const MOCK_LEADS = [
-    { id: "1", nombre: "Juan Pérez", correo: "juan@gmail.com", telefono: "0991234567", estado: "Lead Entrante", tipo_propiedad: "Departamento", asesor: "J. Pérez", canal: "Meta Ads", fecha_creacion: "2026-03-20", fecha_asignacion: "2026-03-20", fecha_reasignacion: null },
-    { id: "2", nombre: "María García", correo: "maria@gmail.com", telefono: "0987654321", estado: "Contacto Efectivo", tipo_propiedad: "Casa", asesor: "A. Torres", canal: "Google Ads", fecha_creacion: "2026-03-19", fecha_asignacion: "2026-03-19", fecha_reasignacion: "2026-03-21" },
-    { id: "3", nombre: "Carlos López", correo: "carlos@gmail.com", telefono: "0990000000", estado: "Visita Agendada", tipo_propiedad: "Casa", asesor: "J. Pérez", canal: "Web", fecha_creacion: "2026-03-18", fecha_asignacion: "2026-03-18", fecha_reasignacion: null },
+    "Seguimiento Abierto (Infinito)", "Visita Agendada", "Visita Realizada",
+    "Reserva", "Cierre Ganado", "Descartados / En Pausa"
 ];
 
 const CANAL_COLORS: Record<string, string> = {
+    "Meta Ads - Cimabela": "bg-blue-100 text-blue-700",
+    "Meta Ads - Portofino": "bg-indigo-100 text-indigo-700",
+    "Meta Ads - Villa Club": "bg-purple-100 text-purple-700",
+    "Meta Ads - Acqua Gardens": "bg-cyan-100 text-cyan-700",
     "Meta Ads": "bg-blue-100 text-blue-700",
     "Google Ads": "bg-red-100 text-red-700",
     "TikTok Ads": "bg-pink-100 text-pink-700",
@@ -30,35 +29,68 @@ const ESTADO_COLORS: Record<string, string> = {
     "Lead Entrante": "bg-yellow-100 text-yellow-700",
     "Contacto Efectivo": "bg-blue-100 text-blue-700",
     "Aterrizaje y Opciones": "bg-purple-100 text-purple-700",
-    "Seguimiento Abierto": "bg-orange-100 text-orange-700",
+    "Seguimiento Abierto (Infinito)": "bg-orange-100 text-orange-700",
     "Visita Agendada": "bg-indigo-100 text-indigo-700",
     "Visita Realizada": "bg-cyan-100 text-cyan-700",
     "Reserva": "bg-teal-100 text-teal-700",
     "Cierre Ganado": "bg-green-100 text-green-700",
-    "Descartado": "bg-red-100 text-red-700",
+    "Descartados / En Pausa": "bg-red-100 text-red-700",
 };
+
+interface Lead {
+    id: string;
+    name: string;
+    email: string | null;
+    phone: string | null;
+    status: string;
+    canal: string | null;
+    formulario: string | null;
+    source: string | null;
+    created_at: string | null;
+    assigned_at: string | null;
+    reassigned_at: string | null;
+}
 
 export default function ClientesPage() {
     const { user } = useAuth();
+    const [leads, setLeads] = useState<Lead[]>([]);
+    const [loading, setLoading] = useState(true);
     const [busqueda, setBusqueda] = useState("");
     const [filtroEstado, setFiltroEstado] = useState("");
-    const [leadSeleccionado, setLeadSeleccionado] = useState<typeof MOCK_LEADS[0] | null>(null);
+    const [pagina, setPagina] = useState(1);
+    const [totalLeads, setTotalLeads] = useState(0);
+    const [leadSeleccionado, setLeadSeleccionado] = useState<Lead | null>(null);
+    const POR_PAGINA = 50;
 
-    const leads = MOCK_LEADS.filter(lead => {
-        const matchBusqueda = lead.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-            lead.correo.toLowerCase().includes(busqueda.toLowerCase()) ||
-            lead.telefono.includes(busqueda);
-        const matchEstado = filtroEstado ? lead.estado === filtroEstado : true;
-        return matchBusqueda && matchEstado;
-    });
+    useEffect(() => {
+        fetchLeads();
+    }, [pagina, filtroEstado, busqueda]);
+
+    const fetchLeads = async () => {
+        setLoading(true);
+        let query = supabase
+            .from("leads")
+            .select("*", { count: "exact" })
+            .order("created_at", { ascending: false })
+            .range((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA - 1);
+
+        if (filtroEstado) query = query.eq("status", filtroEstado);
+        if (busqueda) query = query.or(`name.ilike.%${busqueda}%,phone.ilike.%${busqueda}%,email.ilike.%${busqueda}%`);
+
+        const { data, count, error } = await query;
+        if (!error && data) {
+            setLeads(data);
+            setTotalLeads(count || 0);
+        }
+        setLoading(false);
+    };
 
     const canAddLead = user?.role !== "Asesor";
     const canSeeMarketing = user?.role === "Super Administrador" || user?.role === "Administrador de Marketing";
+    const totalPaginas = Math.ceil(totalLeads / POR_PAGINA);
 
     return (
         <div className="min-h-screen bg-[#EBEAE6]">
-
-            {/* Navbar */}
             <nav className="bg-[#1E2D40] shadow-lg sticky top-0 z-50">
                 <div className="max-w-[1600px] mx-auto px-6 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -67,7 +99,6 @@ export default function ClientesPage() {
                         </div>
                         <span className="text-white font-black text-lg tracking-tight">CRM <span className="text-[#EBEAE6]/70">Habitat</span></span>
                     </div>
-
                     <div className="flex items-center gap-1">
                         {[
                             { label: "Captaciones", href: "/captacion" },
@@ -85,7 +116,6 @@ export default function ClientesPage() {
                             </>
                         )}
                     </div>
-
                     <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white text-xs font-bold">
                             {user?.initials}
@@ -98,16 +128,14 @@ export default function ClientesPage() {
                 </div>
             </nav>
 
-            {/* Content */}
             <main className="p-6 md:p-10">
                 <div className="max-w-[1600px] mx-auto space-y-6">
-
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div>
                             <h1 className="text-2xl font-black text-[#1E2D40] tracking-tighter">
                                 Tablero de <span className="underline decoration-2 underline-offset-4">Contactos</span>
                             </h1>
-                            <p className="text-xs text-[#1A1A1A]/50 mt-1">{leads.length} contactos encontrados</p>
+                            <p className="text-xs text-[#1A1A1A]/50 mt-1">{totalLeads} contactos en total</p>
                         </div>
                         {canAddLead && (
                             <button className="flex items-center gap-2 px-5 py-2.5 bg-[#1E2D40] hover:bg-[#1E2D40]/90 text-white font-bold text-sm rounded-xl shadow-lg transition-all">
@@ -124,110 +152,144 @@ export default function ClientesPage() {
                                 placeholder="Buscar por nombre, correo o teléfono..."
                                 className="form-input pl-9"
                                 value={busqueda}
-                                onChange={(e) => setBusqueda(e.target.value)}
+                                onChange={(e) => { setBusqueda(e.target.value); setPagina(1); }}
                             />
                         </div>
-                        <select className="form-input md:w-48" value={filtroEstado} onChange={(e) => setFiltroEstado(e.target.value)}>
+                        <select className="form-input md:w-48" value={filtroEstado} onChange={(e) => { setFiltroEstado(e.target.value); setPagina(1); }}>
                             <option value="">Todas las etapas</option>
                             {ESTADOS.map(e => <option key={e} value={e}>{e}</option>)}
                         </select>
                     </div>
 
                     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left">
-                                <thead className="bg-[#1E2D40] border-b border-gray-200">
-                                    <tr>
-                                        {["Contacto", "Teléfono", "Correo", "Etapa", "Canal", "Tipo Propiedad", "Asesor", "Fecha Creación", "Fecha Asignación", "Reasignación", "Acciones"].map(col => (
-                                            <th key={col} className="px-4 py-3 text-[10px] font-black text-white/70 uppercase tracking-widest whitespace-nowrap">{col}</th>
-                                        ))}
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-50">
-                                    {leads.map((lead) => (
-                                        <tr key={lead.id} className="hover:bg-[#EBEAE6]/30 transition-colors">
-                                            <td className="px-4 py-4">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-full bg-[#1E2D40]/10 flex items-center justify-center text-[#1E2D40] font-bold text-xs flex-shrink-0">
-                                                        {lead.nombre.charAt(0)}
-                                                    </div>
-                                                    <button
-                                                        onClick={() => setLeadSeleccionado(lead)}
-                                                        className="font-bold text-[#1E2D40] hover:underline text-sm whitespace-nowrap"
-                                                    >
-                                                        {lead.nombre}
-                                                    </button>
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-4">
-                                                <a href={`tel:${lead.telefono}`} className="flex items-center gap-1.5 text-sm text-[#1A1A1A]/70 hover:text-[#1E2D40] transition-colors whitespace-nowrap">
-                                                    <Phone className="w-3.5 h-3.5" />{lead.telefono}
-                                                </a>
-                                            </td>
-                                            <td className="px-4 py-4">
-                                                <a href={`mailto:${lead.correo}`} className="flex items-center gap-1.5 text-sm text-[#1A1A1A]/70 hover:text-[#1E2D40] transition-colors whitespace-nowrap">
-                                                    <Mail className="w-3.5 h-3.5" />{lead.correo}
-                                                </a>
-                                            </td>
-                                            <td className="px-4 py-4">
-                                                <span className={`text-[10px] font-bold px-2 py-1 rounded-full whitespace-nowrap ${ESTADO_COLORS[lead.estado] || "bg-gray-100 text-gray-600"}`}>
-                                                    {lead.estado}
-                                                </span>
-                                            </td>
-                                            <td className="px-4 py-4">
-                                                <span className={`text-[10px] font-bold px-2 py-1 rounded-full whitespace-nowrap ${CANAL_COLORS[lead.canal] || "bg-gray-100 text-gray-600"}`}>
-                                                    {lead.canal}
-                                                </span>
-                                            </td>
-                                            <td className="px-4 py-4">
-                                                <div className="flex items-center gap-1.5 text-sm text-[#1A1A1A]/70 whitespace-nowrap">
-                                                    <Building2 className="w-3.5 h-3.5" />{lead.tipo_propiedad}
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-4">
-                                                <div className="flex items-center gap-1.5 text-sm text-[#1A1A1A]/70 whitespace-nowrap">
-                                                    <User className="w-3.5 h-3.5" />{lead.asesor}
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-4">
-                                                <div className="flex items-center gap-1.5 text-xs text-[#1A1A1A]/50 whitespace-nowrap">
-                                                    <Calendar className="w-3.5 h-3.5" />{lead.fecha_creacion}
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-4">
-                                                <div className="flex items-center gap-1.5 text-xs text-[#1A1A1A]/50 whitespace-nowrap">
-                                                    <Calendar className="w-3.5 h-3.5" />{lead.fecha_asignacion}
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-4">
-                                                <div className="text-xs text-[#1A1A1A]/50 whitespace-nowrap">{lead.fecha_reasignacion || "—"}</div>
-                                            </td>
-                                            <td className="px-4 py-4">
-                                                <button
-                                                    onClick={() => setLeadSeleccionado(lead)}
-                                                    className="px-3 py-1.5 bg-[#1E2D40] hover:bg-[#1E2D40]/90 text-white text-[10px] font-bold rounded-lg transition-all whitespace-nowrap"
-                                                >
-                                                    Ver Perfil
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                        {leads.length === 0 && (
+                        {loading ? (
                             <div className="py-16 text-center">
-                                <p className="text-[#1A1A1A]/40 font-medium">No se encontraron contactos</p>
+                                <div className="w-8 h-8 border-2 border-[#1E2D40] border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+                                <p className="text-gray-400 text-sm">Cargando contactos...</p>
+                            </div>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left">
+                                    <thead className="bg-[#1E2D40]">
+                                        <tr>
+                                            {["Contacto", "Teléfono", "Correo", "Etapa", "Canal / Proyecto", "Asesor", "Fecha Creación", "Acciones"].map(col => (
+                                                <th key={col} className="px-4 py-3 text-[10px] font-black text-white/70 uppercase tracking-widest whitespace-nowrap">{col}</th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-50">
+                                        {leads.map((lead) => (
+                                            <tr key={lead.id} className="hover:bg-[#EBEAE6]/30 transition-colors">
+                                                <td className="px-4 py-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-full bg-[#1E2D40]/10 flex items-center justify-center text-[#1E2D40] font-bold text-xs flex-shrink-0">
+                                                            {lead.name?.charAt(0)?.toUpperCase()}
+                                                        </div>
+                                                        <button onClick={() => setLeadSeleccionado(lead)} className="font-bold text-[#1E2D40] hover:underline text-sm whitespace-nowrap">
+                                                            {lead.name}
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-4">
+                                                    {lead.phone ? (
+                                                        <a href={`tel:${lead.phone}`} className="flex items-center gap-1.5 text-sm text-[#1A1A1A]/70 hover:text-[#1E2D40] whitespace-nowrap">
+                                                            <Phone className="w-3.5 h-3.5" />{lead.phone}
+                                                        </a>
+                                                    ) : <span className="text-gray-300 text-xs">—</span>}
+                                                </td>
+                                                <td className="px-4 py-4">
+                                                    {lead.email ? (
+                                                        <a href={`mailto:${lead.email}`} className="flex items-center gap-1.5 text-sm text-[#1A1A1A]/70 hover:text-[#1E2D40] whitespace-nowrap">
+                                                            <Mail className="w-3.5 h-3.5" />{lead.email}
+                                                        </a>
+                                                    ) : <span className="text-gray-300 text-xs">—</span>}
+                                                </td>
+                                                <td className="px-4 py-4">
+                                                    <span className={`text-[10px] font-bold px-2 py-1 rounded-full whitespace-nowrap ${ESTADO_COLORS[lead.status || ""] || "bg-gray-100 text-gray-600"}`}>
+                                                        {lead.status || "—"}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-4">
+                                                    <div className="space-y-1">
+                                                        {lead.canal && (
+                                                            <span className={`text-[10px] font-bold px-2 py-1 rounded-full whitespace-nowrap block w-fit ${CANAL_COLORS[lead.canal] || "bg-gray-100 text-gray-600"}`}>
+                                                                {lead.canal}
+                                                            </span>
+                                                        )}
+                                                        {lead.formulario && (
+                                                            <p className="text-[10px] text-gray-400 whitespace-nowrap">{lead.formulario}</p>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-4">
+                                                    <div className="flex items-center gap-1.5 text-sm text-[#1A1A1A]/70 whitespace-nowrap">
+                                                        <User className="w-3.5 h-3.5" />{lead.source || "—"}
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-4">
+                                                    <div className="flex items-center gap-1.5 text-xs text-[#1A1A1A]/50 whitespace-nowrap">
+                                                        <Calendar className="w-3.5 h-3.5" />
+                                                        {lead.created_at ? lead.created_at.slice(0, 10) : "—"}
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-4">
+                                                    <button onClick={() => setLeadSeleccionado(lead)} className="px-3 py-1.5 bg-[#1E2D40] hover:bg-[#1E2D40]/90 text-white text-[10px] font-bold rounded-lg transition-all whitespace-nowrap">
+                                                        Ver Perfil
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+
+                        {/* Paginación */}
+                        {!loading && totalPaginas > 1 && (
+                            <div className="p-4 border-t border-gray-100 flex items-center justify-between">
+                                <p className="text-xs text-gray-500">
+                                    Mostrando {(pagina - 1) * POR_PAGINA + 1}–{Math.min(pagina * POR_PAGINA, totalLeads)} de {totalLeads}
+                                </p>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => setPagina(p => Math.max(1, p - 1))}
+                                        disabled={pagina === 1}
+                                        className="px-3 py-1.5 text-xs font-bold bg-[#1E2D40] text-white rounded-lg disabled:opacity-30 transition-all"
+                                    >
+                                        ← Anterior
+                                    </button>
+                                    <span className="px-3 py-1.5 text-xs font-bold text-[#1E2D40]">
+                                        {pagina} / {totalPaginas}
+                                    </span>
+                                    <button
+                                        onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))}
+                                        disabled={pagina === totalPaginas}
+                                        className="px-3 py-1.5 text-xs font-bold bg-[#1E2D40] text-white rounded-lg disabled:opacity-30 transition-all"
+                                    >
+                                        Siguiente →
+                                    </button>
+                                </div>
                             </div>
                         )}
                     </div>
                 </div>
             </main>
 
-            {/* Panel de perfil */}
             {leadSeleccionado && (
                 <LeadProfilePanel
-                    lead={leadSeleccionado}
+                    lead={{
+                        id: leadSeleccionado.id,
+                        nombre: leadSeleccionado.name,
+                        correo: leadSeleccionado.email || "",
+                        telefono: leadSeleccionado.phone || "",
+                        estado: leadSeleccionado.status || "Lead Entrante",
+                        tipo_propiedad: leadSeleccionado.formulario || "",
+                        asesor: leadSeleccionado.source || "",
+                        canal: leadSeleccionado.canal || "",
+                        fecha_creacion: leadSeleccionado.created_at?.slice(0, 10) || "",
+                        fecha_asignacion: leadSeleccionado.assigned_at?.slice(0, 10) || "",
+                        fecha_reasignacion: leadSeleccionado.reassigned_at?.slice(0, 10) || null,
+                    }}
                     onClose={() => setLeadSeleccionado(null)}
                 />
             )}
