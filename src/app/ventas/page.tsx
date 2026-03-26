@@ -3,18 +3,19 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
-import { Phone, User, AlertCircle, Building2, DollarSign } from "lucide-react";
+import { Phone, User, Building2, DollarSign, Clock, AlertCircle } from "lucide-react";
 import Link from "next/link";
 
 const COLUMNAS = [
     { id: "Lead Entrante", color: "border-yellow-400", badge: "bg-yellow-100 text-yellow-700", alerta: true },
     { id: "Contacto Efectivo", color: "border-blue-400", badge: "bg-blue-100 text-blue-700", alerta: false },
     { id: "Aterrizaje y Opciones", color: "border-purple-400", badge: "bg-purple-100 text-purple-700", alerta: false },
-    { id: "Seguimiento Abierto (Infinito)", color: "border-orange-400", badge: "bg-orange-100 text-orange-700", alerta: false },
+    { id: "Seguimiento Abierto", color: "border-orange-400", badge: "bg-orange-100 text-orange-700", alerta: false },
     { id: "Visita Agendada", color: "border-indigo-400", badge: "bg-indigo-100 text-indigo-700", alerta: false },
     { id: "Visita Realizada", color: "border-cyan-400", badge: "bg-cyan-100 text-cyan-700", alerta: false },
     { id: "Reserva", color: "border-teal-400", badge: "bg-teal-100 text-teal-700", alerta: false },
     { id: "Cierre Ganado", color: "border-green-400", badge: "bg-green-100 text-green-700", alerta: false },
+    { id: "En Pausa", color: "border-amber-400", badge: "bg-amber-100 text-amber-700", alerta: false },
     { id: "Descartados / En Pausa", color: "border-red-400", badge: "bg-red-100 text-red-700", alerta: false },
 ];
 
@@ -27,6 +28,7 @@ interface Lead {
     assigned_to_name: string | null;
     source: string | null;
     monto_negociacion: number | null;
+    fecha_recontacto: string | null;
     created_at: string | null;
 }
 
@@ -41,13 +43,15 @@ export default function VentasPage() {
 
     useEffect(() => {
         fetchLeads();
+        // Verificar reactivaciones cada vez que carga
+        checkReactivaciones();
     }, [user]);
 
     const fetchLeads = async () => {
         setLoading(true);
         let query = supabase
             .from("leads")
-            .select("id, name, phone, status, canal, assigned_to_name, source, monto_negociacion, created_at")
+            .select("id, name, phone, status, canal, assigned_to_name, source, monto_negociacion, fecha_recontacto, created_at")
             .order("created_at", { ascending: false });
 
         if (isAsesor && user) {
@@ -57,6 +61,30 @@ export default function VentasPage() {
         const { data, error } = await query;
         if (!error && data) setLeads(data);
         setLoading(false);
+    };
+
+    const checkReactivaciones = async () => {
+        const hoy = new Date().toISOString().slice(0, 10);
+
+        // Leads en pausa cuya fecha de recontacto ya llegó
+        const { data, error } = await supabase
+            .from("leads")
+            .select("id, name")
+            .eq("status", "En Pausa")
+            .lte("fecha_recontacto", hoy)
+            .not("fecha_recontacto", "is", null);
+
+        if (!error && data && data.length > 0) {
+            // Reactivar — mover a Lead Entrante
+            const ids = data.map(l => l.id);
+            await supabase
+                .from("leads")
+                .update({ status: "Lead Entrante", reactivado: true })
+                .in("id", ids);
+
+            // Refrescar
+            fetchLeads();
+        }
     };
 
     const getLeadsByColumna = (columna: string) =>
@@ -74,7 +102,6 @@ export default function VentasPage() {
         const leadId = e.dataTransfer.getData("leadId");
         if (!leadId) return;
 
-        // Actualizar en Supabase
         const { error } = await supabase
             .from("leads")
             .update({ status: nuevaEtapa })
@@ -88,8 +115,16 @@ export default function VentasPage() {
         setDraggingId(null);
     };
 
-    const handleDragOver = (e: React.DragEvent) => {
-        e.preventDefault();
+    const handleDragOver = (e: React.DragEvent) => e.preventDefault();
+
+    const esPausa = (lead: Lead) => lead.status === "En Pausa";
+
+    const diasParaRecontacto = (fecha: string | null) => {
+        if (!fecha) return null;
+        const hoy = new Date();
+        const recontacto = new Date(fecha);
+        const diff = Math.ceil((recontacto.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24));
+        return diff;
     };
 
     if (loading) return (
@@ -100,7 +135,6 @@ export default function VentasPage() {
 
     return (
         <div className="min-h-screen bg-[#EBEAE6]">
-            {/* Navbar */}
             <nav className="bg-[#1E2D40] shadow-lg sticky top-0 z-50">
                 <div className="max-w-[1600px] mx-auto px-6 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -139,7 +173,6 @@ export default function VentasPage() {
                 </div>
             </nav>
 
-            {/* Header */}
             <div className="max-w-[1600px] mx-auto px-6 py-6">
                 <h1 className="text-2xl font-black text-[#1E2D40] tracking-tighter">
                     Pipeline de <span className="underline decoration-2 underline-offset-4">Ventas</span>
@@ -147,7 +180,6 @@ export default function VentasPage() {
                 <p className="text-xs text-[#1A1A1A]/50 mt-1">{leads.length} leads en el pipeline</p>
             </div>
 
-            {/* Kanban */}
             <div className="overflow-x-auto pb-8 px-6">
                 <div className="flex gap-4" style={{ minWidth: `${COLUMNAS.length * 300}px` }}>
                     {COLUMNAS.map((col) => {
@@ -160,7 +192,6 @@ export default function VentasPage() {
                                 className={`flex-shrink-0 w-72 bg-white rounded-2xl border-t-4 ${col.color} shadow-sm flex flex-col`}
                                 style={{ minHeight: "500px" }}
                             >
-                                {/* Columna header */}
                                 <div className="p-4 border-b border-gray-100">
                                     <div className="flex items-center justify-between">
                                         <span className={`text-[10px] font-black px-2 py-1 rounded-full ${col.badge}`}>
@@ -176,52 +207,72 @@ export default function VentasPage() {
                                             <span className="text-[10px] font-black text-red-600">Responder &lt; 5 min</span>
                                         </div>
                                     )}
+                                    {col.id === "En Pausa" && (
+                                        <div className="mt-2 flex items-center gap-1.5 bg-amber-50 border border-amber-100 rounded-lg px-2 py-1">
+                                            <Clock className="w-3 h-3 text-amber-500" />
+                                            <span className="text-[10px] font-black text-amber-600">Se reactivan automáticamente</span>
+                                        </div>
+                                    )}
                                 </div>
 
-                                {/* Cards */}
                                 <div className="p-3 flex-1 space-y-3 overflow-y-auto">
-                                    {colLeads.map((lead) => (
-                                        <div
-                                            key={lead.id}
-                                            draggable={!isAsesor}
-                                            onDragStart={(e) => handleDragStart(e, lead.id)}
-                                            className={`bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all ${!isAsesor ? "cursor-grab active:cursor-grabbing" : ""} ${draggingId === lead.id ? "opacity-50" : ""}`}
-                                        >
-                                            <div className="flex items-start justify-between mb-2">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-7 h-7 rounded-full bg-[#1E2D40]/10 flex items-center justify-center text-[#1E2D40] font-bold text-xs flex-shrink-0">
-                                                        {lead.name?.charAt(0)?.toUpperCase()}
+                                    {colLeads.map((lead) => {
+                                        const dias = esPausa(lead) ? diasParaRecontacto(lead.fecha_recontacto) : null;
+                                        return (
+                                            <div
+                                                key={lead.id}
+                                                draggable={!isAsesor}
+                                                onDragStart={(e) => handleDragStart(e, lead.id)}
+                                                className={`bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all ${!isAsesor ? "cursor-grab active:cursor-grabbing" : ""} ${draggingId === lead.id ? "opacity-50" : ""}`}
+                                            >
+                                                <div className="flex items-start justify-between mb-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-7 h-7 rounded-full bg-[#1E2D40]/10 flex items-center justify-center text-[#1E2D40] font-bold text-xs flex-shrink-0">
+                                                            {lead.name?.charAt(0)?.toUpperCase()}
+                                                        </div>
+                                                        <span className="font-bold text-[#1A1A1A] text-sm">{lead.name}</span>
                                                     </div>
-                                                    <span className="font-bold text-[#1A1A1A] text-sm">{lead.name}</span>
                                                 </div>
-                                            </div>
 
-                                            {lead.phone && (
-                                                <a href={`tel:${lead.phone}`} className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-[#1E2D40] mb-2">
-                                                    <Phone className="w-3 h-3" />{lead.phone}
-                                                </a>
-                                            )}
-
-                                            {lead.monto_negociacion && (
-                                                <div className="flex items-center gap-1.5 text-xs font-bold text-green-600 mb-2">
-                                                    <DollarSign className="w-3 h-3" />
-                                                    {lead.monto_negociacion.toLocaleString()}
-                                                </div>
-                                            )}
-
-                                            <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-50">
-                                                <div className="flex items-center gap-1 text-[10px] text-gray-400">
-                                                    <User className="w-3 h-3" />
-                                                    {lead.assigned_to_name || lead.source || "—"}
-                                                </div>
-                                                {lead.canal && (
-                                                    <span className="text-[9px] font-bold text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">
-                                                        {lead.canal.replace("Meta Ads - ", "")}
-                                                    </span>
+                                                {lead.phone && (
+                                                    <a href={`tel:${lead.phone}`} className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-[#1E2D40] mb-2">
+                                                        <Phone className="w-3 h-3" />{lead.phone}
+                                                    </a>
                                                 )}
+
+                                                {lead.monto_negociacion && (
+                                                    <div className="flex items-center gap-1.5 text-xs font-bold text-green-600 mb-2">
+                                                        <DollarSign className="w-3 h-3" />
+                                                        ${lead.monto_negociacion.toLocaleString()}
+                                                    </div>
+                                                )}
+
+                                                {esPausa(lead) && lead.fecha_recontacto && (
+                                                    <div className={`flex items-center gap-1.5 text-xs font-bold mb-2 ${dias !== null && dias <= 7 ? "text-red-500" : "text-amber-500"}`}>
+                                                        <Clock className="w-3 h-3" />
+                                                        {dias !== null && dias <= 0
+                                                            ? "¡Recontactar hoy!"
+                                                            : dias !== null && dias <= 7
+                                                                ? `${dias} días para recontactar`
+                                                                : `Recontactar: ${lead.fecha_recontacto}`
+                                                        }
+                                                    </div>
+                                                )}
+
+                                                <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-50">
+                                                    <div className="flex items-center gap-1 text-[10px] text-gray-400">
+                                                        <User className="w-3 h-3" />
+                                                        {lead.assigned_to_name || lead.source || "—"}
+                                                    </div>
+                                                    {lead.canal && (
+                                                        <span className="text-[9px] font-bold text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">
+                                                            {lead.canal.replace("Meta Ads - ", "")}
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
 
                                     {colLeads.length === 0 && (
                                         <div className="text-center py-8 text-gray-300 text-xs">
