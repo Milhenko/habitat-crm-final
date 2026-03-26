@@ -32,9 +32,9 @@ interface Lead {
 
 export default function VentasPage() {
     const { user } = useAuth();
-    const [leads, setLeads] = useState < Lead[] > ([]);
+    const [leads, setLeads] = useState<Lead[]>([]);
     const [loading, setLoading] = useState(true);
-    const [draggingId, setDraggingId] = useState < string | null > (null);
+    const [draggingId, setDraggingId] = useState<string | null>(null);
 
     const isAsesor = user?.role === "Asesor";
     const canSeeMarketing = user?.role === "Super Administrador" || user?.role === "Administrador de Marketing";
