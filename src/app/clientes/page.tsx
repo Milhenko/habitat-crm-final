@@ -46,6 +46,7 @@ interface Lead {
     canal: string | null;
     formulario: string | null;
     source: string | null;
+    assigned_to_name: string | null;
     created_at: string | null;
     assigned_at: string | null;
     reassigned_at: string | null;
@@ -57,22 +58,40 @@ export default function ClientesPage() {
     const [loading, setLoading] = useState(true);
     const [busqueda, setBusqueda] = useState("");
     const [filtroEstado, setFiltroEstado] = useState("");
+    const [filtroAsesor, setFiltroAsesor] = useState("");
     const [pagina, setPagina] = useState(1);
     const [totalLeads, setTotalLeads] = useState(0);
     const [leadSeleccionado, setLeadSeleccionado] = useState<Lead | null>(null);
     const POR_PAGINA = 50;
 
+    const isAsesor = user?.role === "Asesor";
+    const isSuperAdmin = user?.role === "Super Administrador";
+    const canSeeMarketing = isSuperAdmin || user?.role === "Administrador de Marketing";
+    const canAddLead = !isAsesor;
+
     useEffect(() => {
         fetchLeads();
-    }, [pagina, filtroEstado, busqueda]);
+    }, [pagina, filtroEstado, busqueda, filtroAsesor, user]);
 
     const fetchLeads = async () => {
+        if (!user) return;
         setLoading(true);
+
         let query = supabase
             .from("leads")
             .select("*", { count: "exact" })
             .order("created_at", { ascending: false })
             .range((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA - 1);
+
+        // Si es Asesor, solo ve sus leads
+        if (isAsesor) {
+            query = query.eq("assigned_to_name", user.name);
+        }
+
+        // Si Super Admin quiere ver solo sus leads (modo asesor)
+        if (filtroAsesor) {
+            query = query.eq("assigned_to_name", filtroAsesor);
+        }
 
         if (filtroEstado) query = query.eq("status", filtroEstado);
         if (busqueda) query = query.or(`name.ilike.%${busqueda}%,phone.ilike.%${busqueda}%,email.ilike.%${busqueda}%`);
@@ -85,9 +104,16 @@ export default function ClientesPage() {
         setLoading(false);
     };
 
-    const canAddLead = user?.role !== "Asesor";
-    const canSeeMarketing = user?.role === "Super Administrador" || user?.role === "Administrador de Marketing";
     const totalPaginas = Math.ceil(totalLeads / POR_PAGINA);
+
+    // Lista de asesores para el filtro (solo visible para admins)
+    const ASESORES = [
+        "Gastón Calderón",
+        "Milenko Surati",
+        "José Morán",
+        "Sebastián Jaramillo",
+        "Rafaela Velásquez",
+    ];
 
     return (
         <div className="min-h-screen bg-[#EBEAE6]">
@@ -135,7 +161,7 @@ export default function ClientesPage() {
                             <h1 className="text-2xl font-black text-[#1E2D40] tracking-tighter">
                                 Tablero de <span className="underline decoration-2 underline-offset-4">Contactos</span>
                             </h1>
-                            <p className="text-xs text-[#1A1A1A]/50 mt-1">{totalLeads} contactos en total</p>
+                            <p className="text-xs text-[#1A1A1A]/50 mt-1">{totalLeads} contactos {isAsesor ? "asignados a ti" : "en total"}</p>
                         </div>
                         {canAddLead && (
                             <button className="flex items-center gap-2 px-5 py-2.5 bg-[#1E2D40] hover:bg-[#1E2D40]/90 text-white font-bold text-sm rounded-xl shadow-lg transition-all">
@@ -159,6 +185,12 @@ export default function ClientesPage() {
                             <option value="">Todas las etapas</option>
                             {ESTADOS.map(e => <option key={e} value={e}>{e}</option>)}
                         </select>
+                        {!isAsesor && (
+                            <select className="form-input md:w-48" value={filtroAsesor} onChange={(e) => { setFiltroAsesor(e.target.value); setPagina(1); }}>
+                                <option value="">Todos los asesores</option>
+                                {ASESORES.map(a => <option key={a} value={a}>{a}</option>)}
+                            </select>
+                        )}
                     </div>
 
                     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
@@ -223,7 +255,7 @@ export default function ClientesPage() {
                                                 </td>
                                                 <td className="px-4 py-4">
                                                     <div className="flex items-center gap-1.5 text-sm text-[#1A1A1A]/70 whitespace-nowrap">
-                                                        <User className="w-3.5 h-3.5" />{lead.source || "—"}
+                                                        <User className="w-3.5 h-3.5" />{lead.assigned_to_name || lead.source || "—"}
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-4">
@@ -244,31 +276,26 @@ export default function ClientesPage() {
                             </div>
                         )}
 
-                        {/* Paginación */}
                         {!loading && totalPaginas > 1 && (
                             <div className="p-4 border-t border-gray-100 flex items-center justify-between">
                                 <p className="text-xs text-gray-500">
                                     Mostrando {(pagina - 1) * POR_PAGINA + 1}–{Math.min(pagina * POR_PAGINA, totalLeads)} de {totalLeads}
                                 </p>
                                 <div className="flex gap-2">
-                                    <button
-                                        onClick={() => setPagina(p => Math.max(1, p - 1))}
-                                        disabled={pagina === 1}
-                                        className="px-3 py-1.5 text-xs font-bold bg-[#1E2D40] text-white rounded-lg disabled:opacity-30 transition-all"
-                                    >
+                                    <button onClick={() => setPagina(p => Math.max(1, p - 1))} disabled={pagina === 1} className="px-3 py-1.5 text-xs font-bold bg-[#1E2D40] text-white rounded-lg disabled:opacity-30 transition-all">
                                         ← Anterior
                                     </button>
-                                    <span className="px-3 py-1.5 text-xs font-bold text-[#1E2D40]">
-                                        {pagina} / {totalPaginas}
-                                    </span>
-                                    <button
-                                        onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))}
-                                        disabled={pagina === totalPaginas}
-                                        className="px-3 py-1.5 text-xs font-bold bg-[#1E2D40] text-white rounded-lg disabled:opacity-30 transition-all"
-                                    >
+                                    <span className="px-3 py-1.5 text-xs font-bold text-[#1E2D40]">{pagina} / {totalPaginas}</span>
+                                    <button onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))} disabled={pagina === totalPaginas} className="px-3 py-1.5 text-xs font-bold bg-[#1E2D40] text-white rounded-lg disabled:opacity-30 transition-all">
                                         Siguiente →
                                     </button>
                                 </div>
+                            </div>
+                        )}
+
+                        {!loading && leads.length === 0 && (
+                            <div className="py-16 text-center">
+                                <p className="text-[#1A1A1A]/40 font-medium">No se encontraron contactos</p>
                             </div>
                         )}
                     </div>
@@ -284,7 +311,7 @@ export default function ClientesPage() {
                         telefono: leadSeleccionado.phone || "",
                         estado: leadSeleccionado.status || "Lead Entrante",
                         tipo_propiedad: leadSeleccionado.formulario || "",
-                        asesor: leadSeleccionado.source || "",
+                        asesor: leadSeleccionado.assigned_to_name || leadSeleccionado.source || "",
                         canal: leadSeleccionado.canal || "",
                         fecha_creacion: leadSeleccionado.created_at?.slice(0, 10) || "",
                         fecha_asignacion: leadSeleccionado.assigned_at?.slice(0, 10) || "",
