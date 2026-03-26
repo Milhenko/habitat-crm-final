@@ -53,7 +53,7 @@ interface Lead {
 }
 
 export default function ClientesPage() {
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const [leads, setLeads] = useState<Lead[]>([]);
     const [loading, setLoading] = useState(true);
     const [busqueda, setBusqueda] = useState("");
@@ -65,16 +65,14 @@ export default function ClientesPage() {
     const POR_PAGINA = 50;
 
     const isAsesor = user?.role === "Asesor";
-    const isSuperAdmin = user?.role === "Super Administrador";
-    const canSeeMarketing = isSuperAdmin || user?.role === "Administrador de Marketing";
+    const canSeeMarketing = user?.role === "Super Administrador" || user?.role === "Administrador de Marketing";
     const canAddLead = !isAsesor;
 
     useEffect(() => {
         fetchLeads();
-    }, [pagina, filtroEstado, busqueda, filtroAsesor, user]);
+    }, [pagina, filtroEstado, busqueda, filtroAsesor, authLoading]);
 
     const fetchLeads = async () => {
-        if (!user) return;
         setLoading(true);
 
         let query = supabase
@@ -83,12 +81,10 @@ export default function ClientesPage() {
             .order("created_at", { ascending: false })
             .range((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA - 1);
 
-        // Si es Asesor, solo ve sus leads
-        if (isAsesor) {
+        if (isAsesor && user) {
             query = query.eq("assigned_to_name", user.name);
         }
 
-        // Si Super Admin quiere ver solo sus leads (modo asesor)
         if (filtroAsesor) {
             query = query.eq("assigned_to_name", filtroAsesor);
         }
@@ -106,7 +102,6 @@ export default function ClientesPage() {
 
     const totalPaginas = Math.ceil(totalLeads / POR_PAGINA);
 
-    // Lista de asesores para el filtro (solo visible para admins)
     const ASESORES = [
         "Gastón Calderón",
         "Milenko Surati",
@@ -144,11 +139,11 @@ export default function ClientesPage() {
                     </div>
                     <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white text-xs font-bold">
-                            {user?.initials}
+                            {user?.initials || "?"}
                         </div>
                         <div className="hidden md:block">
-                            <p className="text-white text-xs font-bold">{user?.name}</p>
-                            <p className="text-white/50 text-[10px]">{user?.role}</p>
+                            <p className="text-white text-xs font-bold">{user?.name || "Cargando..."}</p>
+                            <p className="text-white/50 text-[10px]">{user?.role || ""}</p>
                         </div>
                     </div>
                 </div>
