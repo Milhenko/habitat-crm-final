@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Phone, Mail, User, Building2, MessageSquare, Upload, Save, ToggleLeft, ToggleRight, Clock, FileText, ChevronDown, ChevronUp } from "lucide-react";
+import { X, Phone, Mail, User, Building2, MessageSquare, Upload, Save, ToggleLeft, ToggleRight, ChevronDown, ChevronUp } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 
@@ -23,6 +23,19 @@ interface LeadProfilePanelProps {
     lead: Lead | null;
     onClose: () => void;
 }
+
+const ETAPAS = [
+    "Lead Entrante",
+    "Contacto Efectivo",
+    "Aterrizaje y Opciones",
+    "Seguimiento Abierto",
+    "Visita Agendada",
+    "Visita Realizada",
+    "Reserva",
+    "Cierre Ganado",
+    "En Pausa",
+    "Descartados / En Pausa"
+];
 
 const BLOQUES = [
     {
@@ -106,11 +119,12 @@ const ESTADO_COLORS: Record<string, string> = {
     "Lead Entrante": "bg-yellow-100 text-yellow-700",
     "Contacto Efectivo": "bg-blue-100 text-blue-700",
     "Aterrizaje y Opciones": "bg-purple-100 text-purple-700",
-    "Seguimiento Abierto (Infinito)": "bg-orange-100 text-orange-700",
+    "Seguimiento Abierto": "bg-orange-100 text-orange-700",
     "Visita Agendada": "bg-indigo-100 text-indigo-700",
     "Visita Realizada": "bg-cyan-100 text-cyan-700",
     "Reserva": "bg-teal-100 text-teal-700",
     "Cierre Ganado": "bg-green-100 text-green-700",
+    "En Pausa": "bg-amber-100 text-amber-700",
     "Descartados / En Pausa": "bg-red-100 text-red-700",
 };
 
@@ -123,11 +137,14 @@ export default function LeadProfilePanel({ lead, onClose }: LeadProfilePanelProp
     const [respuestas, setRespuestas] = useState<Record<string, string>>({});
     const [guardando, setGuardando] = useState(false);
     const [guardadoOk, setGuardadoOk] = useState(false);
+    const [etapaActual, setEtapaActual] = useState(lead?.estado || "Lead Entrante");
+    const [actualizandoEtapa, setActualizandoEtapa] = useState(false);
 
     useEffect(() => {
         if (lead) {
             fetchNotas();
             fetchRespuestas();
+            setEtapaActual(lead.estado);
         }
     }, [lead]);
 
@@ -151,11 +168,17 @@ export default function LeadProfilePanel({ lead, onClose }: LeadProfilePanelProp
             .eq("tipo", "guion");
         if (data) {
             const mapped: Record<string, string> = {};
-            data.forEach((r: any) => {
-                mapped[r.pregunta] = r.respuesta || "";
-            });
+            data.forEach((r: any) => { mapped[r.pregunta] = r.respuesta || ""; });
             setRespuestas(mapped);
         }
+    };
+
+    const handleCambiarEtapa = async (nuevaEtapa: string) => {
+        if (!lead) return;
+        setActualizandoEtapa(true);
+        await supabase.from("leads").update({ status: nuevaEtapa }).eq("id", lead.id);
+        setEtapaActual(nuevaEtapa);
+        setActualizandoEtapa(false);
     };
 
     const handleGuardarRespuestas = async () => {
@@ -180,14 +203,7 @@ export default function LeadProfilePanel({ lead, onClose }: LeadProfilePanelProp
         }
 
         if (inserts.length > 0) {
-            // Borrar respuestas anteriores del guión
-            await supabase
-                .from("lead_notes")
-                .delete()
-                .eq("lead_id", lead.id)
-                .eq("tipo", "guion");
-
-            // Insertar nuevas
+            await supabase.from("lead_notes").delete().eq("lead_id", lead.id).eq("tipo", "guion");
             await supabase.from("lead_notes").insert(inserts);
         }
 
@@ -198,18 +214,11 @@ export default function LeadProfilePanel({ lead, onClose }: LeadProfilePanelProp
 
     const handleGuardarNota = async () => {
         if (!nuevaNota.trim() || !lead) return;
-
         const { data } = await supabase
             .from("lead_notes")
-            .insert({
-                lead_id: lead.id,
-                tipo: "nota",
-                respuesta: nuevaNota,
-                asesor_name: user?.name || lead.asesor,
-            })
+            .insert({ lead_id: lead.id, tipo: "nota", respuesta: nuevaNota, asesor_name: user?.name || lead.asesor })
             .select()
             .single();
-
         if (data) {
             setHistorial(prev => [data, ...prev]);
             setNuevaNota("");
@@ -234,8 +243,8 @@ export default function LeadProfilePanel({ lead, onClose }: LeadProfilePanelProp
                         </div>
                         <div>
                             <h2 className="text-white font-black text-lg tracking-tight">{lead.nombre}</h2>
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${ESTADO_COLORS[lead.estado] || "bg-gray-100 text-gray-600"}`}>
-                                {lead.estado}
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${ESTADO_COLORS[etapaActual] || "bg-gray-100 text-gray-600"}`}>
+                                {etapaActual}
                             </span>
                         </div>
                     </div>
@@ -294,6 +303,28 @@ export default function LeadProfilePanel({ lead, onClose }: LeadProfilePanelProp
                                         {lead.asesor || "—"}
                                     </div>
                                 </div>
+
+                                {/* ETAPA DE NEGOCIACIÓN */}
+                                <div>
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Etapa de Negociación</p>
+                                    <div className="relative">
+                                        <select
+                                            className="form-input text-sm"
+                                            value={etapaActual}
+                                            onChange={(e) => handleCambiarEtapa(e.target.value)}
+                                            disabled={actualizandoEtapa}
+                                        >
+                                            {ETAPAS.map(e => (
+                                                <option key={e} value={e}>{e}</option>
+                                            ))}
+                                        </select>
+                                        {actualizandoEtapa && (
+                                            <div className="absolute right-3 top-2.5 w-4 h-4 border-2 border-[#1E2D40] border-t-transparent rounded-full animate-spin" />
+                                        )}
+                                    </div>
+                                    <p className="text-[10px] text-gray-400 mt-1">Se actualiza automáticamente en el pipeline</p>
+                                </div>
+
                                 <div>
                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Medio de Contacto</p>
                                     <span className="text-[10px] font-bold px-3 py-1.5 bg-[#1E2D40]/10 text-[#1E2D40] rounded-full">
@@ -339,9 +370,7 @@ export default function LeadProfilePanel({ lead, onClose }: LeadProfilePanelProp
                                             <div className="p-4 space-y-4">
                                                 {bloque.preguntas.map((pregunta, pIdx) => (
                                                     <div key={pIdx}>
-                                                        <label className="block text-xs font-medium text-[#1A1A1A] mb-1.5 leading-relaxed">
-                                                            {pregunta}
-                                                        </label>
+                                                        <label className="block text-xs font-medium text-[#1A1A1A] mb-1.5 leading-relaxed">{pregunta}</label>
                                                         <textarea
                                                             rows={2}
                                                             className="form-input resize-none text-xs"
@@ -360,18 +389,12 @@ export default function LeadProfilePanel({ lead, onClose }: LeadProfilePanelProp
                                 <button
                                     onClick={handleGuardarRespuestas}
                                     disabled={guardando}
-                                    className={`w-full py-2.5 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2 ${guardadoOk
-                                            ? "bg-green-500 text-white"
-                                            : "bg-[#1E2D40] hover:bg-[#1E2D40]/90 text-white"
+                                    className={`w-full py-2.5 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2 ${guardadoOk ? "bg-green-500 text-white" : "bg-[#1E2D40] hover:bg-[#1E2D40]/90 text-white"
                                         }`}
                                 >
                                     {guardando ? (
                                         <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                    ) : guardadoOk ? (
-                                        "✓ Guardado"
-                                    ) : (
-                                        <><Save className="w-3.5 h-3.5" /> Guardar Respuestas</>
-                                    )}
+                                    ) : guardadoOk ? "✓ Guardado" : <><Save className="w-3.5 h-3.5" /> Guardar Respuestas</>}
                                 </button>
                             </div>
                         </div>
@@ -382,7 +405,6 @@ export default function LeadProfilePanel({ lead, onClose }: LeadProfilePanelProp
                                 Actividades
                             </h3>
 
-                            {/* IA Toggle */}
                             <div className="bg-[#1E2D40] rounded-xl p-4 flex items-center justify-between">
                                 <div>
                                     <p className="text-white font-bold text-sm">Agente IA</p>
@@ -397,7 +419,6 @@ export default function LeadProfilePanel({ lead, onClose }: LeadProfilePanelProp
                                 </button>
                             </div>
 
-                            {/* Registrar nota */}
                             <div>
                                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Registrar Llamada / Nota</p>
                                 <textarea
@@ -415,7 +436,6 @@ export default function LeadProfilePanel({ lead, onClose }: LeadProfilePanelProp
                                 </button>
                             </div>
 
-                            {/* Historial */}
                             <div className="flex-1">
                                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Historial</p>
                                 <div className="space-y-3 max-h-48 overflow-y-auto pr-1">
@@ -439,7 +459,6 @@ export default function LeadProfilePanel({ lead, onClose }: LeadProfilePanelProp
                                 </div>
                             </div>
 
-                            {/* Archivos adjuntos */}
                             <div>
                                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Propuestas Enviadas</p>
                                 <button className="w-full border-2 border-dashed border-gray-200 hover:border-[#1E2D40] rounded-xl p-3 text-xs text-gray-400 hover:text-[#1E2D40] transition-all flex items-center justify-center gap-2">
