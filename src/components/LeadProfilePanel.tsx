@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { X, Phone, Mail, User, Building2, MessageSquare, Upload, ToggleLeft, ToggleRight, Clock, FileText, ChevronDown, ChevronUp } from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, Phone, Mail, User, Building2, MessageSquare, Upload, Save, ToggleLeft, ToggleRight, Clock, FileText, ChevronDown, ChevronUp } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/context/AuthContext";
 
 interface Lead {
     id: string;
@@ -100,45 +102,124 @@ const BLOQUES = [
     }
 ];
 
-const MOCK_HISTORIAL = [
-    { tipo: "llamada", nota: "Primera llamada. Cliente interesado en departamento de 3 habitaciones.", fecha: "2026-03-20 10:30", asesor: "J. Pérez" },
-    { tipo: "nota", nota: "Envió WhatsApp con opciones DP-PSA-0001 y DP-PSA-0002.", fecha: "2026-03-21 14:15", asesor: "J. Pérez" },
-];
-
 const ESTADO_COLORS: Record<string, string> = {
     "Lead Entrante": "bg-yellow-100 text-yellow-700",
     "Contacto Efectivo": "bg-blue-100 text-blue-700",
     "Aterrizaje y Opciones": "bg-purple-100 text-purple-700",
-    "Seguimiento Abierto": "bg-orange-100 text-orange-700",
+    "Seguimiento Abierto (Infinito)": "bg-orange-100 text-orange-700",
     "Visita Agendada": "bg-indigo-100 text-indigo-700",
     "Visita Realizada": "bg-cyan-100 text-cyan-700",
     "Reserva": "bg-teal-100 text-teal-700",
     "Cierre Ganado": "bg-green-100 text-green-700",
-    "Descartado": "bg-red-100 text-red-700",
+    "Descartados / En Pausa": "bg-red-100 text-red-700",
 };
 
 export default function LeadProfilePanel({ lead, onClose }: LeadProfilePanelProps) {
+    const { user } = useAuth();
     const [iaActivo, setIaActivo] = useState(false);
     const [nuevaNota, setNuevaNota] = useState("");
-    const [historial, setHistorial] = useState(MOCK_HISTORIAL);
+    const [historial, setHistorial] = useState<any[]>([]);
     const [bloquesAbiertos, setBloquesAbiertos] = useState<Record<number, boolean>>({ 0: true });
     const [respuestas, setRespuestas] = useState<Record<string, string>>({});
+    const [guardando, setGuardando] = useState(false);
+    const [guardadoOk, setGuardadoOk] = useState(false);
+
+    useEffect(() => {
+        if (lead) {
+            fetchNotas();
+            fetchRespuestas();
+        }
+    }, [lead]);
+
+    const fetchNotas = async () => {
+        if (!lead) return;
+        const { data } = await supabase
+            .from("lead_notes")
+            .select("*")
+            .eq("lead_id", lead.id)
+            .in("tipo", ["llamada", "nota"])
+            .order("created_at", { ascending: false });
+        if (data) setHistorial(data);
+    };
+
+    const fetchRespuestas = async () => {
+        if (!lead) return;
+        const { data } = await supabase
+            .from("lead_notes")
+            .select("*")
+            .eq("lead_id", lead.id)
+            .eq("tipo", "guion");
+        if (data) {
+            const mapped: Record<string, string> = {};
+            data.forEach((r: any) => {
+                mapped[r.pregunta] = r.respuesta || "";
+            });
+            setRespuestas(mapped);
+        }
+    };
+
+    const handleGuardarRespuestas = async () => {
+        if (!lead) return;
+        setGuardando(true);
+
+        const inserts = [];
+        for (const bloque of BLOQUES) {
+            for (const pregunta of bloque.preguntas) {
+                const respuesta = respuestas[pregunta];
+                if (respuesta && respuesta.trim()) {
+                    inserts.push({
+                        lead_id: lead.id,
+                        tipo: "guion",
+                        bloque: bloque.titulo,
+                        pregunta,
+                        respuesta,
+                        asesor_name: user?.name || lead.asesor,
+                    });
+                }
+            }
+        }
+
+        if (inserts.length > 0) {
+            // Borrar respuestas anteriores del guión
+            await supabase
+                .from("lead_notes")
+                .delete()
+                .eq("lead_id", lead.id)
+                .eq("tipo", "guion");
+
+            // Insertar nuevas
+            await supabase.from("lead_notes").insert(inserts);
+        }
+
+        setGuardando(false);
+        setGuardadoOk(true);
+        setTimeout(() => setGuardadoOk(false), 2000);
+    };
+
+    const handleGuardarNota = async () => {
+        if (!nuevaNota.trim() || !lead) return;
+
+        const { data } = await supabase
+            .from("lead_notes")
+            .insert({
+                lead_id: lead.id,
+                tipo: "nota",
+                respuesta: nuevaNota,
+                asesor_name: user?.name || lead.asesor,
+            })
+            .select()
+            .single();
+
+        if (data) {
+            setHistorial(prev => [data, ...prev]);
+            setNuevaNota("");
+        }
+    };
 
     if (!lead) return null;
 
     const toggleBloque = (idx: number) => {
         setBloquesAbiertos(prev => ({ ...prev, [idx]: !prev[idx] }));
-    };
-
-    const handleGuardarNota = () => {
-        if (!nuevaNota.trim()) return;
-        setHistorial(prev => [{
-            tipo: "nota",
-            nota: nuevaNota,
-            fecha: new Date().toLocaleString("es-EC"),
-            asesor: "Usuario Activo"
-        }, ...prev]);
-        setNuevaNota("");
     };
 
     return (
@@ -172,13 +253,11 @@ export default function LeadProfilePanel({ lead, onClose }: LeadProfilePanelProp
                             <h3 className="text-xs font-black text-[#1E2D40] uppercase tracking-widest border-b border-gray-100 pb-3">
                                 Información del Contacto
                             </h3>
-
                             <div className="space-y-4">
                                 <div>
                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Nombre completo</p>
                                     <p className="text-sm font-bold text-[#1A1A1A]">{lead.nombre}</p>
                                 </div>
-
                                 <div>
                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Teléfono</p>
                                     <a href={`tel:${lead.telefono}`} className="flex items-center gap-2 text-sm font-bold text-[#1E2D40] hover:underline">
@@ -188,17 +267,15 @@ export default function LeadProfilePanel({ lead, onClose }: LeadProfilePanelProp
                                         {lead.telefono}
                                     </a>
                                 </div>
-
                                 <div>
                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Correo</p>
                                     <a href={`mailto:${lead.correo}`} className="flex items-center gap-2 text-sm font-bold text-[#1E2D40] hover:underline break-all">
                                         <div className="w-8 h-8 bg-[#1E2D40] rounded-lg flex items-center justify-center flex-shrink-0">
                                             <Mail className="w-4 h-4 text-white" />
                                         </div>
-                                        {lead.correo}
+                                        {lead.correo || "—"}
                                     </a>
                                 </div>
-
                                 <div>
                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Estado Civil</p>
                                     <select className="form-input text-sm">
@@ -210,33 +287,26 @@ export default function LeadProfilePanel({ lead, onClose }: LeadProfilePanelProp
                                         <option>Unión libre</option>
                                     </select>
                                 </div>
-
                                 <div>
                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Asesor Asignado</p>
                                     <div className="flex items-center gap-2 text-sm text-[#1A1A1A]">
                                         <User className="w-4 h-4 text-gray-400" />
-                                        {lead.asesor}
+                                        {lead.asesor || "—"}
                                     </div>
                                 </div>
-
                                 <div>
                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Medio de Contacto</p>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-[10px] font-bold px-3 py-1.5 bg-[#1E2D40]/10 text-[#1E2D40] rounded-full">
-                                            {lead.canal}
-                                        </span>
-                                        <span className="text-[10px] text-gray-400 italic">Auto-detectado</span>
-                                    </div>
+                                    <span className="text-[10px] font-bold px-3 py-1.5 bg-[#1E2D40]/10 text-[#1E2D40] rounded-full">
+                                        {lead.canal || "—"}
+                                    </span>
                                 </div>
-
                                 <div>
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Tipo de Propiedad</p>
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Proyecto de Interés</p>
                                     <div className="flex items-center gap-2 text-sm text-[#1A1A1A]">
                                         <Building2 className="w-4 h-4 text-gray-400" />
-                                        {lead.tipo_propiedad}
+                                        {lead.tipo_propiedad || "—"}
                                     </div>
                                 </div>
-
                                 <div className="pt-3 border-t border-gray-100 grid grid-cols-2 gap-3 text-xs text-gray-500">
                                     <div>
                                         <p className="font-black text-[10px] uppercase tracking-widest text-gray-400 mb-0.5">Creado</p>
@@ -246,12 +316,6 @@ export default function LeadProfilePanel({ lead, onClose }: LeadProfilePanelProp
                                         <p className="font-black text-[10px] uppercase tracking-widest text-gray-400 mb-0.5">Asignado</p>
                                         <p>{lead.fecha_asignacion}</p>
                                     </div>
-                                    {lead.fecha_reasignacion && (
-                                        <div className="col-span-2">
-                                            <p className="font-black text-[10px] uppercase tracking-widest text-gray-400 mb-0.5">Reasignado</p>
-                                            <p>{lead.fecha_reasignacion}</p>
-                                        </div>
-                                    )}
                                 </div>
                             </div>
                         </div>
@@ -282,8 +346,8 @@ export default function LeadProfilePanel({ lead, onClose }: LeadProfilePanelProp
                                                             rows={2}
                                                             className="form-input resize-none text-xs"
                                                             placeholder="Respuesta..."
-                                                            value={respuestas[`${idx}-${pIdx}`] || ""}
-                                                            onChange={(e) => setRespuestas(prev => ({ ...prev, [`${idx}-${pIdx}`]: e.target.value }))}
+                                                            value={respuestas[pregunta] || ""}
+                                                            onChange={(e) => setRespuestas(prev => ({ ...prev, [pregunta]: e.target.value }))}
                                                         />
                                                     </div>
                                                 ))}
@@ -293,8 +357,21 @@ export default function LeadProfilePanel({ lead, onClose }: LeadProfilePanelProp
                                 ))}
                             </div>
                             <div className="mt-4 pt-4 border-t border-gray-100 flex-shrink-0">
-                                <button className="w-full py-2.5 bg-[#1E2D40] hover:bg-[#1E2D40]/90 text-white font-bold text-xs rounded-xl transition-all">
-                                    Guardar Respuestas
+                                <button
+                                    onClick={handleGuardarRespuestas}
+                                    disabled={guardando}
+                                    className={`w-full py-2.5 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2 ${guardadoOk
+                                            ? "bg-green-500 text-white"
+                                            : "bg-[#1E2D40] hover:bg-[#1E2D40]/90 text-white"
+                                        }`}
+                                >
+                                    {guardando ? (
+                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                    ) : guardadoOk ? (
+                                        "✓ Guardado"
+                                    ) : (
+                                        <><Save className="w-3.5 h-3.5" /> Guardar Respuestas</>
+                                    )}
                                 </button>
                             </div>
                         </div>
@@ -342,17 +419,23 @@ export default function LeadProfilePanel({ lead, onClose }: LeadProfilePanelProp
                             <div className="flex-1">
                                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Historial</p>
                                 <div className="space-y-3 max-h-48 overflow-y-auto pr-1">
-                                    {historial.map((item, idx) => (
-                                        <div key={idx} className="flex gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-[#EBEAE6] flex items-center justify-center flex-shrink-0">
-                                                {item.tipo === "llamada" ? <Phone className="w-3.5 h-3.5 text-[#1E2D40]" /> : <MessageSquare className="w-3.5 h-3.5 text-[#1E2D40]" />}
+                                    {historial.length === 0 ? (
+                                        <p className="text-xs text-gray-300 text-center py-4">Sin actividad registrada</p>
+                                    ) : (
+                                        historial.map((item, idx) => (
+                                            <div key={idx} className="flex gap-3">
+                                                <div className="w-8 h-8 rounded-full bg-[#EBEAE6] flex items-center justify-center flex-shrink-0">
+                                                    <MessageSquare className="w-3.5 h-3.5 text-[#1E2D40]" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs text-[#1A1A1A] leading-relaxed">{item.respuesta}</p>
+                                                    <p className="text-[10px] text-gray-400 mt-0.5">
+                                                        {new Date(item.created_at).toLocaleString("es-EC")} — {item.asesor_name}
+                                                    </p>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <p className="text-xs text-[#1A1A1A] leading-relaxed">{item.nota}</p>
-                                                <p className="text-[10px] text-gray-400 mt-0.5">{item.fecha} — {item.asesor}</p>
-                                            </div>
-                                        </div>
-                                    ))}
+                                        ))
+                                    )}
                                 </div>
                             </div>
 
@@ -362,12 +445,6 @@ export default function LeadProfilePanel({ lead, onClose }: LeadProfilePanelProp
                                 <button className="w-full border-2 border-dashed border-gray-200 hover:border-[#1E2D40] rounded-xl p-3 text-xs text-gray-400 hover:text-[#1E2D40] transition-all flex items-center justify-center gap-2">
                                     <Upload className="w-4 h-4" /> Subir archivo / propuesta
                                 </button>
-                                <div className="mt-2 space-y-1">
-                                    <div className="flex items-center gap-2 p-2 bg-[#EBEAE6] rounded-lg">
-                                        <FileText className="w-3.5 h-3.5 text-[#1E2D40]" />
-                                        <span className="text-[10px] text-[#1A1A1A]">Propuesta_DP-PSA-0001.pdf</span>
-                                    </div>
-                                </div>
                             </div>
                         </div>
 
