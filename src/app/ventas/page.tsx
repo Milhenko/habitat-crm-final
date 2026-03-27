@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
-import { Phone, User, Building2, DollarSign, Clock, AlertCircle } from "lucide-react";
+import { Phone, User, Building2, DollarSign, Clock } from "lucide-react";
 import Link from "next/link";
+import LeadProfilePanel from "@/components/LeadProfilePanel";
 
 const COLUMNAS = [
     { id: "Lead Entrante", color: "border-yellow-400", badge: "bg-yellow-100 text-yellow-700", alerta: true },
@@ -30,6 +31,10 @@ interface Lead {
     monto_negociacion: number | null;
     fecha_recontacto: string | null;
     created_at: string | null;
+    email: string | null;
+    formulario: string | null;
+    assigned_at: string | null;
+    reassigned_at: string | null;
 }
 
 export default function VentasPage() {
@@ -37,13 +42,13 @@ export default function VentasPage() {
     const [leads, setLeads] = useState<Lead[]>([]);
     const [loading, setLoading] = useState(true);
     const [draggingId, setDraggingId] = useState<string | null>(null);
+    const [leadSeleccionado, setLeadSeleccionado] = useState<Lead | null>(null);
 
     const isAsesor = user?.role === "Asesor";
     const canSeeMarketing = user?.role === "Super Administrador" || user?.role === "Administrador de Marketing";
 
     useEffect(() => {
         fetchLeads();
-        // Verificar reactivaciones cada vez que carga
         checkReactivaciones();
     }, [user]);
 
@@ -51,7 +56,7 @@ export default function VentasPage() {
         setLoading(true);
         let query = supabase
             .from("leads")
-            .select("id, name, phone, status, canal, assigned_to_name, source, monto_negociacion, fecha_recontacto, created_at")
+            .select("*")
             .order("created_at", { ascending: false });
 
         if (isAsesor && user) {
@@ -65,24 +70,16 @@ export default function VentasPage() {
 
     const checkReactivaciones = async () => {
         const hoy = new Date().toISOString().slice(0, 10);
-
-        // Leads en pausa cuya fecha de recontacto ya llegó
         const { data, error } = await supabase
             .from("leads")
-            .select("id, name")
+            .select("id")
             .eq("status", "En Pausa")
             .lte("fecha_recontacto", hoy)
             .not("fecha_recontacto", "is", null);
 
         if (!error && data && data.length > 0) {
-            // Reactivar — mover a Lead Entrante
             const ids = data.map(l => l.id);
-            await supabase
-                .from("leads")
-                .update({ status: "Lead Entrante", reactivado: true })
-                .in("id", ids);
-
-            // Refrescar
+            await supabase.from("leads").update({ status: "Lead Entrante", reactivado: true }).in("id", ids);
             fetchLeads();
         }
     };
@@ -117,14 +114,11 @@ export default function VentasPage() {
 
     const handleDragOver = (e: React.DragEvent) => e.preventDefault();
 
-    const esPausa = (lead: Lead) => lead.status === "En Pausa";
-
     const diasParaRecontacto = (fecha: string | null) => {
         if (!fecha) return null;
         const hoy = new Date();
         const recontacto = new Date(fecha);
-        const diff = Math.ceil((recontacto.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24));
-        return diff;
+        return Math.ceil((recontacto.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24));
     };
 
     if (loading) return (
@@ -217,7 +211,7 @@ export default function VentasPage() {
 
                                 <div className="p-3 flex-1 space-y-3 overflow-y-auto">
                                     {colLeads.map((lead) => {
-                                        const dias = esPausa(lead) ? diasParaRecontacto(lead.fecha_recontacto) : null;
+                                        const dias = col.id === "En Pausa" ? diasParaRecontacto(lead.fecha_recontacto) : null;
                                         return (
                                             <div
                                                 key={lead.id}
@@ -230,7 +224,12 @@ export default function VentasPage() {
                                                         <div className="w-7 h-7 rounded-full bg-[#1E2D40]/10 flex items-center justify-center text-[#1E2D40] font-bold text-xs flex-shrink-0">
                                                             {lead.name?.charAt(0)?.toUpperCase()}
                                                         </div>
-                                                        <span className="font-bold text-[#1A1A1A] text-sm">{lead.name}</span>
+                                                        <button
+                                                            onClick={() => setLeadSeleccionado(lead)}
+                                                            className="font-bold text-[#1A1A1A] hover:text-[#1E2D40] hover:underline text-sm text-left"
+                                                        >
+                                                            {lead.name}
+                                                        </button>
                                                     </div>
                                                 </div>
 
@@ -242,20 +241,14 @@ export default function VentasPage() {
 
                                                 {lead.monto_negociacion && (
                                                     <div className="flex items-center gap-1.5 text-xs font-bold text-green-600 mb-2">
-                                                        <DollarSign className="w-3 h-3" />
-                                                        ${lead.monto_negociacion.toLocaleString()}
+                                                        <DollarSign className="w-3 h-3" />${lead.monto_negociacion.toLocaleString()}
                                                     </div>
                                                 )}
 
-                                                {esPausa(lead) && lead.fecha_recontacto && (
+                                                {col.id === "En Pausa" && lead.fecha_recontacto && (
                                                     <div className={`flex items-center gap-1.5 text-xs font-bold mb-2 ${dias !== null && dias <= 7 ? "text-red-500" : "text-amber-500"}`}>
                                                         <Clock className="w-3 h-3" />
-                                                        {dias !== null && dias <= 0
-                                                            ? "¡Recontactar hoy!"
-                                                            : dias !== null && dias <= 7
-                                                                ? `${dias} días para recontactar`
-                                                                : `Recontactar: ${lead.fecha_recontacto}`
-                                                        }
+                                                        {dias !== null && dias <= 0 ? "¡Recontactar hoy!" : dias !== null && dias <= 7 ? `${dias} días` : `${lead.fecha_recontacto}`}
                                                     </div>
                                                 )}
 
@@ -275,9 +268,7 @@ export default function VentasPage() {
                                     })}
 
                                     {colLeads.length === 0 && (
-                                        <div className="text-center py-8 text-gray-300 text-xs">
-                                            Sin leads aquí
-                                        </div>
+                                        <div className="text-center py-8 text-gray-300 text-xs">Sin leads aquí</div>
                                     )}
                                 </div>
                             </div>
@@ -285,6 +276,25 @@ export default function VentasPage() {
                     })}
                 </div>
             </div>
+
+            {leadSeleccionado && (
+                <LeadProfilePanel
+                    lead={{
+                        id: leadSeleccionado.id,
+                        nombre: leadSeleccionado.name,
+                        correo: leadSeleccionado.email || "",
+                        telefono: leadSeleccionado.phone || "",
+                        estado: leadSeleccionado.status || "Lead Entrante",
+                        tipo_propiedad: leadSeleccionado.formulario || "",
+                        asesor: leadSeleccionado.assigned_to_name || leadSeleccionado.source || "",
+                        canal: leadSeleccionado.canal || "",
+                        fecha_creacion: leadSeleccionado.created_at?.slice(0, 10) || "",
+                        fecha_asignacion: leadSeleccionado.assigned_at?.slice(0, 10) || "",
+                        fecha_reasignacion: leadSeleccionado.reassigned_at?.slice(0, 10) || null,
+                    }}
+                    onClose={() => setLeadSeleccionado(null)}
+                />
+            )}
         </div>
     );
 }

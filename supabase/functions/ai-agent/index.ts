@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY")
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")
-const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SERVICE_ROLE_KEY")
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,11 +16,10 @@ serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_KEY!)
+    const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!)
     const body = await req.json()
     const { lead_id, use_case } = body
 
-    // Obtener datos del lead
     const { data: lead, error } = await supabase
       .from("leads")
       .select("*")
@@ -72,7 +71,6 @@ Redacta un mensaje de confirmación de visita para enviar 24 horas antes.
 Incluye que estás disponible para cualquier pregunta previa.`
     }
 
-    // Llamar a Claude API
     const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -81,7 +79,7 @@ Incluye que estás disponible para cualquier pregunta previa.`
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
+        model: "claude-haiku-4-5-20251001",
         max_tokens: 500,
         system: systemPrompt,
         messages: [{ role: "user", content: userMessage }],
@@ -89,9 +87,16 @@ Incluye que estás disponible para cualquier pregunta previa.`
     })
 
     const claudeData = await claudeResponse.json()
+
+    if (!claudeData.content || claudeData.content.length === 0) {
+      return new Response(
+        JSON.stringify({ error: "Claude no generó respuesta", details: claudeData }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+      )
+    }
+
     const mensaje = claudeData.content[0].text
 
-    // Actualizar lead en Supabase
     await supabase
       .from("leads")
       .update({
