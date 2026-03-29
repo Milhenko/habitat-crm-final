@@ -122,6 +122,7 @@ export default function ClientesPage() {
                     </div>
                     <div className="flex items-center gap-1">
                         {[
+                            { label: "Contactos", href: "/clientes" },
                             { label: "Captaciones", href: "/captacion" },
                             { label: "Inventario", href: "/inventario" },
                             { label: "Pipeline de Ventas", href: "/ventas" },
