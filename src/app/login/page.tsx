@@ -1,119 +1,91 @@
-"use client";
+'use client'
 
-import { useState } from "react";
-import { supabase } from "@/lib/supabase";
-import { Building2, Mail, Lock, Eye, EyeOff } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useState } from 'react'
+import { supabase } from '@/lib/supabase'
+import { useRouter } from 'next/navigation'
 
 export default function LoginPage() {
-    const router = useRouter();
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [showPassword, setShowPassword] = useState(false);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState("");
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const router = useRouter()
 
-    const handleLogin = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoading(true);
-        setError("");
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
 
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
 
-        if (error) {
-            setError("Correo o contraseña incorrectos.");
-            setLoading(false);
-            return;
-        }
+    if (error) {
+      setError(error.message)
+      setLoading(false)
+      return
+    }
 
-        router.push("/clientes");
-    };
+    if (data.user) {
+      router.push('/clientes')
+    }
+  }
 
-    return (
-        <div className="min-h-screen bg-[#EBEAE6] flex items-center justify-center p-4">
-            <div className="w-full max-w-md">
-
-                {/* Logo */}
-                <div className="text-center mb-8">
-                    <div className="w-16 h-16 bg-[#1E2D40] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl">
-                        <Building2 className="w-8 h-8 text-white" />
-                    </div>
-                    <h1 className="text-3xl font-black text-[#1E2D40] tracking-tighter">CRM Habitat</h1>
-                    <p className="text-[#1A1A1A]/50 text-sm mt-1">Ingresa a tu cuenta</p>
-                </div>
-
-                {/* Card */}
-                <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
-                    <form onSubmit={handleLogin} className="space-y-5">
-
-                        <div>
-                            <label className="form-label mb-2">Correo electrónico</label>
-                            <div className="relative">
-                                <Mail className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
-                                <input
-                                    type="email"
-                                    className="form-input pl-9"
-                                    placeholder="tu@habitatrealtygroupai.com"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    required
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="form-label mb-2">Contraseña</label>
-                            <div className="relative">
-                                <Lock className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
-                                <input
-                                    type={showPassword ? "text" : "password"}
-                                    className="form-input pl-9 pr-10"
-                                    placeholder="••••••••"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    required
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
-                                >
-                                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                                </button>
-                            </div>
-                        </div>
-
-                        {error && (
-                            <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl">
-                                {error}
-                            </div>
-                        )}
-
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="w-full py-3 bg-[#1E2D40] hover:bg-[#1E2D40]/90 text-white font-bold rounded-xl transition-all shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
-                        >
-                            {loading ? (
-                                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                            ) : (
-                                "Ingresar al CRM"
-                            )}
-                        </button>
-
-                    </form>
-
-                    <div className="mt-6 pt-6 border-t border-gray-100 text-center">
-                        <p className="text-xs text-gray-400">
-                            ¿Olvidaste tu contraseña? Contacta al administrador.
-                        </p>
-                    </div>
-                </div>
-
-                <p className="text-center text-xs text-[#1A1A1A]/30 mt-6">
-                    © 2026 Habitat Realty Group · CRM v2.0
-                </p>
-            </div>
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">CRM Habitat</h1>
+          <p className="text-slate-600">Ingresa tus credenciales</p>
         </div>
-    );
+
+        <form onSubmit={handleLogin} className="space-y-6">
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+              {error}
+            </div>
+          )}
+
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="tu@email.com"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-2">
+              Contraseña
+            </label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="••••••••"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-blue-300"
+          >
+            {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+          </button>
+        </form>
+      </div>
+    </div>
+  )
 }
