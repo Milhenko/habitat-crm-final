@@ -1,110 +1,91 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/context/AuthContext'
-import { User, Settings, LogOut, ChevronDown } from 'lucide-react'
+import { Building2, UserCircle2, LogOut, ChevronDown } from 'lucide-react'
+import { useState } from 'react'
 
 export default function GlobalHeader() {
-  const { user, signOut } = useAuth()
-  const [dropdownOpen, setDropdownOpen] = useState(false)
-  const dropdownRef = useRef<HTMLDivElement>(null)
+  const { user, loading, signOut } = useAuth()
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
 
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setDropdownOpen(false)
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
-
-  if (!user) return null
-
-  const navItems = [
-    { label: 'Contactos', href: '/clientes' },
-    { label: 'Captaciones', href: '/captacion' },
-    { label: 'Inventario', href: '/inventario' },
-    { label: 'Pipeline de Ventas', href: '/ventas' },
-  ]
+  const canSeeMarketing = user?.role === "Super Administrador" || user?.role === "Administrador de Marketing"
 
   return (
-    <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-6 py-4">
-        <div className="flex items-center justify-between">
-          {/* Logo */}
-          <h1 className="text-2xl font-bold text-slate-900">CRM Habitat</h1>
-
-          {/* Navigation */}
-          <nav className="flex gap-6">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-
-          {/* User Profile */}
-          <div className="relative" ref={dropdownRef}>
-            <button
-              onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="flex items-center gap-3 hover:bg-slate-50 rounded-lg px-3 py-2 transition-colors"
-            >
-              {/* Avatar */}
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold">
-                {user.initials}
-              </div>
-              
-              {/* Name + Role */}
-              <div className="text-left">
-                <p className="text-sm font-medium text-slate-900">{user.name}</p>
-                <p className="text-xs text-slate-500">{user.role}</p>
-              </div>
-
-              <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
-            </button>
-
-            {/* Dropdown Menu */}
-            {dropdownOpen && (
-              <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-slate-200 py-2">
-                <Link
-                  href="/perfil"
-                  className="flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
-                  onClick={() => setDropdownOpen(false)}
-                >
-                  <User className="w-4 h-4" />
-                  Ver Perfil
-                </Link>
-
-                <Link
-                  href="/configuracion"
-                  className="flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
-                  onClick={() => setDropdownOpen(false)}
-                >
-                  <Settings className="w-4 h-4" />
-                  Configuración
-                </Link>
-
-                <hr className="my-2 border-slate-200" />
-
-                <button
-                  onClick={signOut}
-                  className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                >
-                  <LogOut className="w-4 h-4" />
-                  Cerrar Sesión
-                </button>
-              </div>
-            )}
+    <nav className="bg-white border-b border-gray-100 sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+        {/* Logo */}
+        <Link href="/clientes" className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+            <Building2 className="text-white w-6 h-6" />
           </div>
+          <div>
+            <h1 className="text-xl font-bold text-gray-900 tracking-tighter">
+              CRM <span className="text-blue-600">Habitat</span>
+            </h1>
+          </div>
+        </Link>
+
+        {/* Navigation Links */}
+        <div className="flex items-center gap-1">
+          <Link href="/clientes" className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all">
+            Contactos
+          </Link>
+          <Link href="/captacion" className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all">
+            Captaciones
+          </Link>
+          <Link href="/inventario" className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all">
+            Inventario
+          </Link>
+          <Link href="/ventas" className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all">
+            Pipeline de Ventas
+          </Link>
+          {canSeeMarketing && (
+            <>
+              <Link href="/marketing" className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all">
+                Marketing
+              </Link>
+              <Link href="/automatizacion" className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all">
+                Automatización
+              </Link>
+            </>
+          )}
+        </div>
+
+        {/* User Profile */}
+        <div className="relative">
+          <button
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className="flex items-center gap-3 p-1.5 rounded-2xl hover:bg-gray-50 transition-all border border-transparent hover:border-gray-100"
+          >
+            <div className="text-right hidden sm:block">
+              <p className="text-xs font-black text-gray-900 leading-none">{user?.name || "Cargando..."}</p>
+              <p className="text-[10px] text-blue-600 font-bold mt-1 uppercase">{user?.role || ""}</p>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 font-black text-sm">
+              {user?.initials || "?"}
+            </div>
+            <ChevronDown className="w-4 h-4 text-gray-400" />
+          </button>
+          {isMenuOpen && (
+            <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-gray-100 rounded-2xl shadow-xl py-2 overflow-hidden">
+              <Link
+                href="/perfil"
+                onClick={() => setIsMenuOpen(false)}
+                className="flex items-center gap-3 px-4 py-3 text-sm font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all"
+              >
+                <UserCircle2 className="w-4 h-4" /> Mi Perfil
+              </Link>
+              <button
+                onClick={() => { signOut(); setIsMenuOpen(false); }}
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 transition-all"
+              >
+                <LogOut className="w-4 h-4" /> Cerrar Sesión
+              </button>
+            </div>
+          )}
         </div>
       </div>
-    </header>
+    </nav>
   )
 }
