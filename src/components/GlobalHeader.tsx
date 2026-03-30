@@ -17,9 +17,9 @@ export default function GlobalHeader() {
                 {/* Logo */}
                 <Link href="/clientes" className="flex items-center">
                     <img
-                        src="/logo.png"
+                        src="/images/logo.png"
                         alt="Habitat Realty Group"
-                        className="h-10 w-auto"
+                        className="h-12 w-auto"
                     />
                 </Link>
 
@@ -84,7 +84,7 @@ export default function GlobalHeader() {
                             </Link>
                             <button
                                 onClick={() => { signOut(); setIsMenuOpen(false); }}
-                                className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 transition-all"
+                                className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 transition-all border-t border-gray-50 mt-1"
                             >
                                 <LogOut className="w-4 h-4" /> Cerrar Sesión
                             </button>
