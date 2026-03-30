@@ -6,7 +6,6 @@ import { Search, Plus, Phone, Mail, Calendar, User, Building2 } from "lucide-rea
 import Link from "next/link";
 import LeadProfilePanel from "@/components/LeadProfilePanel";
 import { supabase } from "@/lib/supabase";
-import GlobalHeader from "@/components/GlobalHeader";
 
 const ESTADOS = [
     "Lead Entrante", "Contacto Efectivo", "Aterrizaje y Opciones",
@@ -103,13 +102,52 @@ export default function ClientesPage() {
 
     const totalPaginas = Math.ceil(totalLeads / POR_PAGINA);
 
-    if (authLoading) {
-        return <div className="min-h-screen bg-[#EBEAE6] flex items-center justify-center text-[#1E2D40]">Cargando...</div>;
-    }
+    const ASESORES = [
+        "Gastón Calderón",
+        "Milenko Surati",
+        "José Morán",
+        "Sebastián Jaramillo",
+        "Rafaela Velásquez",
+    ];
 
     return (
         <div className="min-h-screen bg-[#EBEAE6]">
-            <GlobalHeader />
+            <nav className="bg-[#1E2D40] shadow-lg sticky top-0 z-50">
+                <div className="max-w-[1600px] mx-auto px-6 py-4 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center">
+                            <Building2 className="w-4 h-4 text-white" />
+                        </div>
+                        <span className="text-white font-black text-lg tracking-tight">CRM <span className="text-[#EBEAE6]/70">Habitat</span></span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                        {[
+                            { label: "Captaciones", href: "/captacion" },
+                            { label: "Inventario", href: "/inventario" },
+                            { label: "Pipeline de Ventas", href: "/ventas" },
+                        ].map((item) => (
+                            <Link key={item.href} href={item.href} className="px-4 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all">
+                                {item.label}
+                            </Link>
+                        ))}
+                        {canSeeMarketing && (
+                            <>
+                                <Link href="/marketing" className="px-4 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all">Marketing</Link>
+                                <Link href="/automatizacion" className="px-4 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all">Automatización</Link>
+                            </>
+                        )}
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white text-xs font-bold">
+                            {user?.initials || "?"}
+                        </div>
+                        <div className="hidden md:block">
+                            <p className="text-white text-xs font-bold">{user?.name || "Cargando..."}</p>
+                            <p className="text-white/50 text-[10px]">{user?.role || ""}</p>
+                        </div>
+                    </div>
+                </div>
+            </nav>
 
             <main className="p-6 md:p-10">
                 <div className="max-w-[1600px] mx-auto space-y-6">
@@ -127,104 +165,104 @@ export default function ClientesPage() {
                         )}
                     </div>
 
-                    <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-[#1A1A1A]/5 p-6">
-                        <div className="flex flex-col md:flex-row gap-4 mb-6">
-                            <div className="flex-1 relative">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#1A1A1A]/30" />
-                                <input
-                                    type="text"
-                                    placeholder="Buscar por nombre, teléfono o email..."
-                                    value={busqueda}
-                                    onChange={(e) => setBusqueda(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20"
-                                />
-                            </div>
-                            <select
-                                value={filtroEstado}
-                                onChange={(e) => setFiltroEstado(e.target.value)}
-                                className="px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20"
-                            >
-                                <option value="">Todos los estados</option>
-                                {ESTADOS.map((estado) => (
-                                    <option key={estado} value={estado}>{estado}</option>
-                                ))}
-                            </select>
-                            {!isAsesor && (
-                                <select
-                                    value={filtroAsesor}
-                                    onChange={(e) => setFiltroAsesor(e.target.value)}
-                                    className="px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20"
-                                >
-                                    <option value="">Todos los asesores</option>
-                                    <option value="Ana García">Ana García</option>
-                                    <option value="Milenko Surati">Milenko Surati</option>
-                                </select>
-                            )}
+                    <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm flex flex-col md:flex-row gap-3">
+                        <div className="flex-1 relative">
+                            <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+                            <input
+                                type="text"
+                                placeholder="Buscar por nombre, correo o teléfono..."
+                                className="form-input pl-9"
+                                value={busqueda}
+                                onChange={(e) => { setBusqueda(e.target.value); setPagina(1); }}
+                            />
                         </div>
+                        <select className="form-input md:w-48" value={filtroEstado} onChange={(e) => { setFiltroEstado(e.target.value); setPagina(1); }}>
+                            <option value="">Todas las etapas</option>
+                            {ESTADOS.map(e => <option key={e} value={e}>{e}</option>)}
+                        </select>
+                        {!isAsesor && (
+                            <select className="form-input md:w-48" value={filtroAsesor} onChange={(e) => { setFiltroAsesor(e.target.value); setPagina(1); }}>
+                                <option value="">Todos los asesores</option>
+                                {ASESORES.map(a => <option key={a} value={a}>{a}</option>)}
+                            </select>
+                        )}
+                    </div>
 
+                    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
                         {loading ? (
-                            <div className="text-center py-12 text-[#1A1A1A]/50">Cargando contactos...</div>
-                        ) : leads.length === 0 ? (
-                            <div className="text-center py-12 text-[#1A1A1A]/50">No se encontraron contactos</div>
+                            <div className="py-16 text-center">
+                                <div className="w-8 h-8 border-2 border-[#1E2D40] border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+                                <p className="text-gray-400 text-sm">Cargando contactos...</p>
+                            </div>
                         ) : (
                             <div className="overflow-x-auto">
-                                <table className="w-full">
-                                    <thead>
-                                        <tr className="border-b border-[#1A1A1A]/10">
-                                            <th className="text-left py-3 px-4 text-xs font-black text-[#1A1A1A]/50 uppercase tracking-wider">Contacto</th>
-                                            <th className="text-left py-3 px-4 text-xs font-black text-[#1A1A1A]/50 uppercase tracking-wider">Estado</th>
-                                            <th className="text-left py-3 px-4 text-xs font-black text-[#1A1A1A]/50 uppercase tracking-wider">Canal</th>
-                                            <th className="text-left py-3 px-4 text-xs font-black text-[#1A1A1A]/50 uppercase tracking-wider">Asesor</th>
-                                            <th className="text-left py-3 px-4 text-xs font-black text-[#1A1A1A]/50 uppercase tracking-wider">Fecha</th>
+                                <table className="w-full text-left">
+                                    <thead className="bg-[#1E2D40]">
+                                        <tr>
+                                            {["Contacto", "Teléfono", "Correo", "Etapa", "Canal / Proyecto", "Asesor", "Fecha Creación", "Acciones"].map(col => (
+                                                <th key={col} className="px-4 py-3 text-[10px] font-black text-white/70 uppercase tracking-widest whitespace-nowrap">{col}</th>
+                                            ))}
                                         </tr>
                                     </thead>
-                                    <tbody>
+                                    <tbody className="divide-y divide-gray-50">
                                         {leads.map((lead) => (
-                                            <tr
-                                                key={lead.id}
-                                                onClick={() => setLeadSeleccionado(lead)}
-                                                className="border-b border-[#1A1A1A]/5 hover:bg-[#EBEAE6]/30 cursor-pointer transition-colors"
-                                            >
-                                                <td className="py-4 px-4">
+                                            <tr key={lead.id} className="hover:bg-[#EBEAE6]/30 transition-colors">
+                                                <td className="px-4 py-4">
                                                     <div className="flex items-center gap-3">
-                                                        <div className="w-10 h-10 rounded-full bg-[#1E2D40]/10 flex items-center justify-center">
-                                                            <User className="w-5 h-5 text-[#1E2D40]" />
+                                                        <div className="w-8 h-8 rounded-full bg-[#1E2D40]/10 flex items-center justify-center text-[#1E2D40] font-bold text-xs flex-shrink-0">
+                                                            {lead.name?.charAt(0)?.toUpperCase()}
                                                         </div>
-                                                        <div>
-                                                            <p className="font-bold text-sm text-[#1E2D40]">{lead.name}</p>
-                                                            <div className="flex items-center gap-3 mt-1">
-                                                                {lead.phone && (
-                                                                    <span className="flex items-center gap-1 text-xs text-[#1A1A1A]/50">
-                                                                        <Phone className="w-3 h-3" /> {lead.phone}
-                                                                    </span>
-                                                                )}
-                                                                {lead.email && (
-                                                                    <span className="flex items-center gap-1 text-xs text-[#1A1A1A]/50">
-                                                                        <Mail className="w-3 h-3" /> {lead.email}
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                        </div>
+                                                        <button onClick={() => setLeadSeleccionado(lead)} className="font-bold text-[#1E2D40] hover:underline text-sm whitespace-nowrap">
+                                                            {lead.name}
+                                                        </button>
                                                     </div>
                                                 </td>
-                                                <td className="py-4 px-4">
-                                                    <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold ${ESTADO_COLORS[lead.status] || "bg-gray-100 text-gray-700"}`}>
-                                                        {lead.status}
+                                                <td className="px-4 py-4">
+                                                    {lead.phone ? (
+                                                        <a href={`tel:${lead.phone}`} className="flex items-center gap-1.5 text-sm text-[#1A1A1A]/70 hover:text-[#1E2D40] whitespace-nowrap">
+                                                            <Phone className="w-3.5 h-3.5" />{lead.phone}
+                                                        </a>
+                                                    ) : <span className="text-gray-300 text-xs">—</span>}
+                                                </td>
+                                                <td className="px-4 py-4">
+                                                    {lead.email ? (
+                                                        <a href={`mailto:${lead.email}`} className="flex items-center gap-1.5 text-sm text-[#1A1A1A]/70 hover:text-[#1E2D40] whitespace-nowrap">
+                                                            <Mail className="w-3.5 h-3.5" />{lead.email}
+                                                        </a>
+                                                    ) : <span className="text-gray-300 text-xs">—</span>}
+                                                </td>
+                                                <td className="px-4 py-4">
+                                                    <span className={`text-[10px] font-bold px-2 py-1 rounded-full whitespace-nowrap ${ESTADO_COLORS[lead.status || ""] || "bg-gray-100 text-gray-600"}`}>
+                                                        {lead.status || "—"}
                                                     </span>
                                                 </td>
-                                                <td className="py-4 px-4">
-                                                    <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold ${CANAL_COLORS[lead.canal || ""] || "bg-gray-100 text-gray-700"}`}>
-                                                        {lead.canal || "Sin canal"}
-                                                    </span>
-                                                </td>
-                                                <td className="py-4 px-4">
-                                                    <span className="text-sm font-medium text-[#1E2D40]">{lead.assigned_to_name || "Sin asignar"}</span>
-                                                </td>
-                                                <td className="py-4 px-4">
-                                                    <div className="flex items-center gap-1 text-xs text-[#1A1A1A]/50">
-                                                        <Calendar className="w-3 h-3" />
-                                                        {lead.created_at ? new Date(lead.created_at).toLocaleDateString() : "—"}
+                                                <td className="px-4 py-4">
+                                                    <div className="space-y-1">
+                                                        {lead.canal && (
+                                                            <span className={`text-[10px] font-bold px-2 py-1 rounded-full whitespace-nowrap block w-fit ${CANAL_COLORS[lead.canal] || "bg-gray-100 text-gray-600"}`}>
+                                                                {lead.canal}
+                                                            </span>
+                                                        )}
+                                                        {lead.formulario && (
+                                                            <p className="text-[10px] text-gray-400 whitespace-nowrap">{lead.formulario}</p>
+                                                        )}
                                                     </div>
+                                                </td>
+                                                <td className="px-4 py-4">
+                                                    <div className="flex items-center gap-1.5 text-sm text-[#1A1A1A]/70 whitespace-nowrap">
+                                                        <User className="w-3.5 h-3.5" />{lead.assigned_to_name || lead.source || "—"}
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-4">
+                                                    <div className="flex items-center gap-1.5 text-xs text-[#1A1A1A]/50 whitespace-nowrap">
+                                                        <Calendar className="w-3.5 h-3.5" />
+                                                        {lead.created_at ? lead.created_at.slice(0, 10) : "—"}
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-4">
+                                                    <button onClick={() => setLeadSeleccionado(lead)} className="px-3 py-1.5 bg-[#1E2D40] hover:bg-[#1E2D40]/90 text-white text-[10px] font-bold rounded-lg transition-all whitespace-nowrap">
+                                                        Ver Perfil
+                                                    </button>
                                                 </td>
                                             </tr>
                                         ))}
@@ -233,27 +271,26 @@ export default function ClientesPage() {
                             </div>
                         )}
 
-                        {totalPaginas > 1 && (
-                            <div className="flex items-center justify-between mt-6 pt-6 border-t border-[#1A1A1A]/10">
-                                <p className="text-xs text-[#1A1A1A]/50">
-                                    Página {pagina} de {totalPaginas}
+                        {!loading && totalPaginas > 1 && (
+                            <div className="p-4 border-t border-gray-100 flex items-center justify-between">
+                                <p className="text-xs text-gray-500">
+                                    Mostrando {(pagina - 1) * POR_PAGINA + 1}–{Math.min(pagina * POR_PAGINA, totalLeads)} de {totalLeads}
                                 </p>
                                 <div className="flex gap-2">
-                                    <button
-                                        onClick={() => setPagina((p) => Math.max(1, p - 1))}
-                                        disabled={pagina === 1}
-                                        className="px-4 py-2 bg-[#1E2D40]/10 hover:bg-[#1E2D40]/20 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-bold text-[#1E2D40] transition-all"
-                                    >
-                                        Anterior
+                                    <button onClick={() => setPagina(p => Math.max(1, p - 1))} disabled={pagina === 1} className="px-3 py-1.5 text-xs font-bold bg-[#1E2D40] text-white rounded-lg disabled:opacity-30 transition-all">
+                                        ← Anterior
                                     </button>
-                                    <button
-                                        onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
-                                        disabled={pagina === totalPaginas}
-                                        className="px-4 py-2 bg-[#1E2D40]/10 hover:bg-[#1E2D40]/20 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-bold text-[#1E2D40] transition-all"
-                                    >
-                                        Siguiente
+                                    <span className="px-3 py-1.5 text-xs font-bold text-[#1E2D40]">{pagina} / {totalPaginas}</span>
+                                    <button onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))} disabled={pagina === totalPaginas} className="px-3 py-1.5 text-xs font-bold bg-[#1E2D40] text-white rounded-lg disabled:opacity-30 transition-all">
+                                        Siguiente →
                                     </button>
                                 </div>
+                            </div>
+                        )}
+
+                        {!loading && leads.length === 0 && (
+                            <div className="py-16 text-center">
+                                <p className="text-[#1A1A1A]/40 font-medium">No se encontraron contactos</p>
                             </div>
                         )}
                     </div>
@@ -261,7 +298,22 @@ export default function ClientesPage() {
             </main>
 
             {leadSeleccionado && (
-                <LeadProfilePanel lead={leadSeleccionado} onClose={() => setLeadSeleccionado(null)} />
+                <LeadProfilePanel
+                    lead={{
+                        id: leadSeleccionado.id,
+                        nombre: leadSeleccionado.name,
+                        correo: leadSeleccionado.email || "",
+                        telefono: leadSeleccionado.phone || "",
+                        estado: leadSeleccionado.status || "Lead Entrante",
+                        tipo_propiedad: leadSeleccionado.formulario || "",
+                        asesor: leadSeleccionado.assigned_to_name || leadSeleccionado.source || "",
+                        canal: leadSeleccionado.canal || "",
+                        fecha_creacion: leadSeleccionado.created_at?.slice(0, 10) || "",
+                        fecha_asignacion: leadSeleccionado.assigned_at?.slice(0, 10) || "",
+                        fecha_reasignacion: leadSeleccionado.reassigned_at?.slice(0, 10) || null,
+                    }}
+                    onClose={() => setLeadSeleccionado(null)}
+                />
             )}
         </div>
     );
