@@ -6,46 +6,44 @@ import { Building2, UserCircle2, LogOut, ChevronDown } from 'lucide-react'
 import { useState } from 'react'
 
 export default function GlobalHeader() {
-  const { user, loading, signOut } = useAuth()
+  const { user, signOut } = useAuth()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   const canSeeMarketing = user?.role === "Super Administrador" || user?.role === "Administrador de Marketing"
 
   return (
-    <nav className="bg-white border-b border-gray-100 sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+    <nav className="bg-[#1E2D40] shadow-lg sticky top-0 z-50">
+      <div className="max-w-[1600px] mx-auto px-6 py-4 flex items-center justify-between">
         {/* Logo */}
-        <Link href="/clientes" className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-            <Building2 className="text-white w-6 h-6" />
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center">
+            <Building2 className="w-4 h-4 text-white" />
           </div>
-          <div>
-            <h1 className="text-xl font-bold text-gray-900 tracking-tighter">
-              CRM <span className="text-blue-600">Habitat</span>
-            </h1>
-          </div>
-        </Link>
+          <span className="text-white font-black text-lg tracking-tight">
+            CRM <span className="text-[#EBEAE6]/70">Habitat</span>
+          </span>
+        </div>
 
         {/* Navigation Links */}
         <div className="flex items-center gap-1">
-          <Link href="/clientes" className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all">
+          <Link href="/clientes" className="px-4 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all">
             Contactos
           </Link>
-          <Link href="/captacion" className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all">
+          <Link href="/captacion" className="px-4 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all">
             Captaciones
           </Link>
-          <Link href="/inventario" className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all">
+          <Link href="/inventario" className="px-4 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all">
             Inventario
           </Link>
-          <Link href="/ventas" className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all">
+          <Link href="/ventas" className="px-4 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all">
             Pipeline de Ventas
           </Link>
           {canSeeMarketing && (
             <>
-              <Link href="/marketing" className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all">
+              <Link href="/marketing" className="px-4 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all">
                 Marketing
               </Link>
-              <Link href="/automatizacion" className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all">
+              <Link href="/automatizacion" className="px-4 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all">
                 Automatización
               </Link>
             </>
@@ -56,19 +54,20 @@ export default function GlobalHeader() {
         <div className="relative">
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="flex items-center gap-3 p-1.5 rounded-2xl hover:bg-gray-50 transition-all border border-transparent hover:border-gray-100"
+            className="flex items-center gap-3 hover:bg-white/5 rounded-lg px-3 py-2 transition-all"
           >
-            <div className="text-right hidden sm:block">
-              <p className="text-xs font-black text-gray-900 leading-none">{user?.name || "Cargando..."}</p>
-              <p className="text-[10px] text-blue-600 font-bold mt-1 uppercase">{user?.role || ""}</p>
-            </div>
-            <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 font-black text-sm">
+            <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white text-xs font-bold">
               {user?.initials || "?"}
             </div>
-            <ChevronDown className="w-4 h-4 text-gray-400" />
+            <div className="hidden md:block text-left">
+              <p className="text-white text-xs font-bold leading-none">{user?.name || "Cargando..."}</p>
+              <p className="text-white/50 text-[10px] mt-1">{user?.role || ""}</p>
+            </div>
+            <ChevronDown className={`w-4 h-4 text-white/50 transition-transform ${isMenuOpen ? 'rotate-180' : ''}`} />
           </button>
+
           {isMenuOpen && (
-            <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-gray-100 rounded-2xl shadow-xl py-2 overflow-hidden">
+            <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-xl py-2 overflow-hidden border border-gray-100">
               <Link
                 href="/perfil"
                 onClick={() => setIsMenuOpen(false)}
