@@ -6,6 +6,7 @@ import { Search, Plus, Phone, Mail, Calendar, User, Building2 } from "lucide-rea
 import Link from "next/link";
 import LeadProfilePanel from "@/components/LeadProfilePanel";
 import { supabase } from "@/lib/supabase";
+import GlobalHeader from "@/components/GlobalHeader";
 
 const ESTADOS = [
     "Lead Entrante", "Contacto Efectivo", "Aterrizaje y Opciones",
@@ -112,42 +113,7 @@ export default function ClientesPage() {
 
     return (
         <div className="min-h-screen bg-[#EBEAE6]">
-            <nav className="bg-[#1E2D40] shadow-lg sticky top-0 z-50">
-                <div className="max-w-[1600px] mx-auto px-6 py-4 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center">
-                            <Building2 className="w-4 h-4 text-white" />
-                        </div>
-                        <span className="text-white font-black text-lg tracking-tight">CRM <span className="text-[#EBEAE6]/70">Habitat</span></span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                        {[
-                            { label: "Captaciones", href: "/captacion" },
-                            { label: "Inventario", href: "/inventario" },
-                            { label: "Pipeline de Ventas", href: "/ventas" },
-                        ].map((item) => (
-                            <Link key={item.href} href={item.href} className="px-4 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all">
-                                {item.label}
-                            </Link>
-                        ))}
-                        {canSeeMarketing && (
-                            <>
-                                <Link href="/marketing" className="px-4 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all">Marketing</Link>
-                                <Link href="/automatizacion" className="px-4 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all">Automatización</Link>
-                            </>
-                        )}
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white text-xs font-bold">
-                            {user?.initials || "?"}
-                        </div>
-                        <div className="hidden md:block">
-                            <p className="text-white text-xs font-bold">{user?.name || "Cargando..."}</p>
-                            <p className="text-white/50 text-[10px]">{user?.role || ""}</p>
-                        </div>
-                    </div>
-                </div>
-            </nav>
+            <GlobalHeader />
 
             <main className="p-6 md:p-10">
                 <div className="max-w-[1600px] mx-auto space-y-6">
