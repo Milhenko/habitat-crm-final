@@ -169,7 +169,7 @@ export default function LeadProfilePanel({ lead, onClose }: LeadProfilePanelProp
                 <div className="bg-[#1E2D40] px-6 py-4 flex items-center justify-between flex-shrink-0">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white font-black text-lg">
-                            {lead.nombre.charAt(0)}
+                            {(lead.name || "?").charAt(0)}
                         </div>
                         <div>
                             <h2 className="text-white font-black text-lg tracking-tight">{lead.nombre}</h2>
