@@ -56,7 +56,7 @@ export default function VentasPage() {
     const fetchLeads = async () => {
         try {
             setLoading(true);
-            let query = supabase.from("leads").select("id, name, phone, status, canal, assigned_to_name, monto_negociacion, fecha_recontacto, created_at, email").order("created_at", { ascending: false });
+            let query = supabase.from("leads").select("*").order("created_at", { ascending: false });
             if (isAsesor && user) { query = query.eq("assigned_to_name", user.name); }
             const { data, error } = await query;
             if (error) { console.error("Error fetching leads:", error); setLoading(false); return; }
