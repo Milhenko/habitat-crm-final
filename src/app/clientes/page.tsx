@@ -63,7 +63,7 @@ export default function ClientesPage() {
     const [pagina, setPagina] = useState(1);
     const [totalLeads, setTotalLeads] = useState(0);
     const [leadSeleccionado, setLeadSeleccionado] = useState<Lead | null>(null);
-    const POR_PAGINA = 50;
+    const [porPagina, setPorPagina] = useState(50);
 
     const isAsesor = user?.role === "Asesor";
     const canSeeMarketing = user?.role === "Super Administrador" || user?.role === "Administrador de Marketing";
@@ -71,7 +71,7 @@ export default function ClientesPage() {
 
     useEffect(() => {
         fetchLeads();
-    }, [pagina, filtroEstado, busqueda, filtroAsesor, authLoading]);
+    }, [pagina, filtroEstado, busqueda, filtroAsesor, porPagina, authLoading]);
 
     const fetchLeads = async () => {
         setLoading(true);
@@ -80,7 +80,7 @@ export default function ClientesPage() {
             .from("leads")
             .select("*", { count: "exact" })
             .order("created_at", { ascending: false })
-            .range((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA - 1);
+            .range((pagina - 1) * porPagina, pagina * porPagina - 1);
 
         if (isAsesor && user) {
             query = query.eq("assigned_to_name", user.name);
@@ -101,7 +101,7 @@ export default function ClientesPage() {
         setLoading(false);
     };
 
-    const totalPaginas = Math.ceil(totalLeads / POR_PAGINA);
+    const totalPaginas = Math.ceil(totalLeads / porPagina);
 
     const ASESORES = [
         "Gastón Calderón",
@@ -152,6 +152,15 @@ export default function ClientesPage() {
                                 {ASESORES.map(a => <option key={a} value={a}>{a}</option>)}
                             </select>
                         )}
+                        <select 
+                            className="bg-[#EBEAE6]/50 border border-gray-200 rounded-xl px-4 py-2 text-sm font-bold text-[#1E2D40] focus:outline-none transition-all cursor-pointer hover:bg-[#EBEAE6]/80 md:w-48"
+                            value={porPagina} 
+                            onChange={(e) => { setPorPagina(Number(e.target.value)); setPagina(1); }}
+                        >
+                            <option value={20}>Mostrar: 20</option>
+                            <option value={50}>Mostrar: 50</option>
+                            <option value={100}>Mostrar: 100</option>
+                        </select>
                     </div>
 
                     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
@@ -239,8 +248,8 @@ export default function ClientesPage() {
 
                         {!loading && totalPaginas > 1 && (
                             <div className="p-4 border-t border-gray-100 flex items-center justify-between">
-                                <p className="text-xs text-gray-500">
-                                    Mostrando {(pagina - 1) * POR_PAGINA + 1}–{Math.min(pagina * POR_PAGINA, totalLeads)} de {totalLeads}
+                                <p className="text-xs text-gray-500 font-medium">
+                                    Mostrando {(pagina - 1) * porPagina + 1}–{Math.min(pagina * porPagina, totalLeads)} de {totalLeads}
                                 </p>
                                 <div className="flex gap-2">
                                     <button onClick={() => setPagina(p => Math.max(1, p - 1))} disabled={pagina === 1} className="px-3 py-1.5 text-xs font-bold bg-[#1E2D40] text-white rounded-lg disabled:opacity-30 transition-all">
