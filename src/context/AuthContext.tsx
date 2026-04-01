@@ -1,92 +1,45 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 
-export type Role = "Super Administrador" | "Coordinador Comercial" | "Administrador de Marketing" | "Asesor";
-
-export interface User {
+interface User {
     id: string;
-    name: string;
-    role: Role;
-    initials: string;
     email: string;
+    name: string;
+    role: string;
+    initials: string;
 }
 
 interface AuthContextType {
     user: User | null;
-    users: User[];
-    setRole: (role: Role) => void;
     loading: boolean;
     signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
-    const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const init = async () => {
+        let mounted = true;
+        
+        const loadUser = async () => {
             const { data: { session } } = await supabase.auth.getSession();
-            if (session?.user) {
-                await loadProfile(session.user.id);
-            } else {
+            if (!session?.user || !mounted) { setLoading(false); return; }
+            
+            const { data, error } = await supabase.from("users").select("*").eq("id", session.user.id).single();
+            if (mounted) {
+                if (!error && data) setUser(data);
                 setLoading(false);
             }
         };
 
-        init();
-
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-            if (session?.user) {
-                await loadProfile(session.user.id);
-            } else {
-                setUser(null);
-                setLoading(false);
-            }
-        });
-
-        return () => subscription.unsubscribe();
+        loadUser();
+        return () => { mounted = false };
     }, []);
-
-    const loadProfile = async (authId: string) => {
-        const { data } = await supabase
-            .from("users")
-            .select("*")
-            .eq("id", authId)
-            .single();
-
-        if (data) {
-            setUser({
-                id: data.id,
-                name: data.name,
-                role: data.role as Role,
-                initials: data.initials,
-                email: data.email,
-            });
-        }
-
-        const { data: allUsers } = await supabase.from("users").select("*");
-        if (allUsers) {
-            setUsers(allUsers.map((u: any) => ({
-                id: u.id,
-                name: u.name,
-                role: u.role as Role,
-                initials: u.initials,
-                email: u.email,
-            })));
-        }
-
-        setLoading(false);
-    };
-
-    const setRole = (role: Role) => {
-        const found = users.find((u) => u.role === role);
-        if (found) setUser(found);
-    };
 
     const signOut = async () => {
         await supabase.auth.signOut();
@@ -94,15 +47,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         window.location.href = "/login";
     };
 
-    return (
-        <AuthContext.Provider value={{ user, users, setRole, loading, signOut }}>
-            {children}
-        </AuthContext.Provider>
-    );
-}
+    const value = useMemo(() => ({ user, loading, signOut }), [user, loading]);
 
-export function useAuth() {
+    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
+
+export const useAuth = () => {
     const context = useContext(AuthContext);
-    if (context === undefined) throw new Error("useAuth must be used within AuthProvider");
+    if (!context) throw new Error("useAuth must be used within AuthProvider");
     return context;
-}
+};
