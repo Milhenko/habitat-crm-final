@@ -7,16 +7,16 @@ import { useAuth } from "@/context/AuthContext";
 
 interface Lead {
     id: string;
-    nombre: string;
-    correo: string;
-    telefono: string;
-    estado: string;
+    name: string;
+    email: string;
+    phone: string;
+    status: string;
     tipo_propiedad: string;
-    asesor: string;
+    assigned_to_name: string;
     canal: string;
-    fecha_creacion: string;
-    fecha_asignacion: string;
-    fecha_reasignacion: string | null;
+    created_at: string;
+    assigned_at: string;
+    reassigned_at: string | null;
 }
 
 interface LeadProfilePanelProps {
@@ -74,7 +74,7 @@ export default function LeadProfilePanel({ lead, onClose }: LeadProfilePanelProp
             fetchNotas();
             fetchRespuestas();
             fetchMonto();
-            setEtapaActual(lead.estado);
+            setEtapaActual(lead.status);
         }
     }, [lead]);
 
@@ -136,7 +136,7 @@ export default function LeadProfilePanel({ lead, onClose }: LeadProfilePanelProp
             for (const pregunta of bloque.preguntas) {
                 const respuesta = respuestas[pregunta];
                 if (respuesta && respuesta.trim()) {
-                    inserts.push({ lead_id: lead.id, tipo: "guion", bloque: bloque.titulo, pregunta, respuesta, asesor_name: user?.name || lead.asesor });
+                    inserts.push({ lead_id: lead.id, tipo: "guion", bloque: bloque.titulo, pregunta, respuesta, asesor_name: user?.name || lead.assigned_to_name });
                 }
             }
         }
@@ -153,7 +153,7 @@ export default function LeadProfilePanel({ lead, onClose }: LeadProfilePanelProp
         if (!nuevaNota.trim() || !lead) return;
         const { data } = await supabase
             .from("lead_notes")
-            .insert({ lead_id: lead.id, tipo: "nota", respuesta: nuevaNota, asesor_name: user?.name || lead.asesor })
+            .insert({ lead_id: lead.id, tipo: "nota", respuesta: nuevaNota, asesor_name: user?.name || lead.assigned_to_name })
             .select().single();
         if (data) { setHistorial(prev => [data, ...prev]); setNuevaNota(""); }
     };
@@ -172,7 +172,7 @@ export default function LeadProfilePanel({ lead, onClose }: LeadProfilePanelProp
                             {(lead.name || "?").charAt(0)}
                         </div>
                         <div>
-                            <h2 className="text-white font-black text-lg tracking-tight">{lead.nombre}</h2>
+                            <h2 className="text-white font-black text-lg tracking-tight">{lead.name}</h2>
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${ESTADO_COLORS[etapaActual] || "bg-gray-100 text-gray-600"}`}>
                                 {etapaActual}
                             </span>
@@ -192,20 +192,20 @@ export default function LeadProfilePanel({ lead, onClose }: LeadProfilePanelProp
                             <div className="space-y-4">
                                 <div>
                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Nombre completo</p>
-                                    <p className="text-sm font-bold text-[#1A1A1A]">{lead.nombre}</p>
+                                    <p className="text-sm font-bold text-[#1A1A1A]">{lead.name}</p>
                                 </div>
                                 <div>
                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Teléfono</p>
-                                    <a href={`tel:${lead.telefono}`} className="flex items-center gap-2 text-sm font-bold text-[#1E2D40] hover:underline">
+                                    <a href={`tel:${lead.phone}`} className="flex items-center gap-2 text-sm font-bold text-[#1E2D40] hover:underline">
                                         <div className="w-8 h-8 bg-[#1E2D40] rounded-lg flex items-center justify-center flex-shrink-0"><Phone className="w-4 h-4 text-white" /></div>
-                                        {lead.telefono}
+                                        {lead.phone}
                                     </a>
                                 </div>
                                 <div>
                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Correo</p>
-                                    <a href={`mailto:${lead.correo}`} className="flex items-center gap-2 text-sm font-bold text-[#1E2D40] hover:underline break-all">
+                                    <a href={`mailto:${lead.email}`} className="flex items-center gap-2 text-sm font-bold text-[#1E2D40] hover:underline break-all">
                                         <div className="w-8 h-8 bg-[#1E2D40] rounded-lg flex items-center justify-center flex-shrink-0"><Mail className="w-4 h-4 text-white" /></div>
-                                        {lead.correo || "—"}
+                                        {lead.email || "—"}
                                     </a>
                                 </div>
                                 <div>
@@ -218,7 +218,7 @@ export default function LeadProfilePanel({ lead, onClose }: LeadProfilePanelProp
                                 <div>
                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Asesor Asignado</p>
                                     <div className="flex items-center gap-2 text-sm text-[#1A1A1A]">
-                                        <User className="w-4 h-4 text-gray-400" />{lead.asesor || "—"}
+                                        <User className="w-4 h-4 text-gray-400" />{lead.assigned_to_name || "—"}
                                     </div>
                                 </div>
 
@@ -271,8 +271,8 @@ export default function LeadProfilePanel({ lead, onClose }: LeadProfilePanelProp
                                     </div>
                                 </div>
                                 <div className="pt-3 border-t border-gray-100 grid grid-cols-2 gap-3 text-xs text-gray-500">
-                                    <div><p className="font-black text-[10px] uppercase tracking-widest text-gray-400 mb-0.5">Creado</p><p>{lead.fecha_creacion}</p></div>
-                                    <div><p className="font-black text-[10px] uppercase tracking-widest text-gray-400 mb-0.5">Asignado</p><p>{lead.fecha_asignacion}</p></div>
+                                    <div><p className="font-black text-[10px] uppercase tracking-widest text-gray-400 mb-0.5">Creado</p><p>{lead.created_at}</p></div>
+                                    <div><p className="font-black text-[10px] uppercase tracking-widest text-gray-400 mb-0.5">Asignado</p><p>{lead.assigned_at}</p></div>
                                 </div>
                             </div>
                         </div>
