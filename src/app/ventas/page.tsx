@@ -49,6 +49,7 @@ export default function VentasPage() {
     const [filtroAsesor, setFiltroAsesor] = useState("");
 
     const isAsesor = user?.role === "Asesor";
+    const isSuperAdmin = user?.role === "Super Administrador";
 
     useEffect(() => {
         if (!authLoading && user) {
@@ -136,7 +137,10 @@ export default function VentasPage() {
             lead.email?.toLowerCase().includes(busqueda.toLowerCase());
 
         const matchEstado = !filtroEstado || lead.status === filtroEstado;
-        const matchAsesor = !filtroAsesor || lead.assigned_to_name === filtroAsesor;
+        let matchAsesor = !filtroAsesor || lead.assigned_to_name === filtroAsesor;
+        if (filtroAsesor === "Sin asignar") {
+            matchAsesor = !lead.assigned_to_name || lead.assigned_to_name === "Sin asignar";
+        }
 
         return matchBusqueda && matchEstado && matchAsesor;
     });
@@ -156,8 +160,9 @@ export default function VentasPage() {
     };
 
     const canDragLead = (lead: Lead) => {
-        if (!isAsesor) return true;
-        return lead.assigned_to_name === user?.name;
+        if (isSuperAdmin) return true; // Super Admins pueden mover CUALQUIER lead
+        if (!isAsesor) return true; // Otros admins también pueden
+        return lead.assigned_to_name === user?.name; // Asesores solo sus propios leads
     };
 
     const handleDragStart = (e: React.DragEvent, leadId: string) => {
@@ -257,12 +262,12 @@ export default function VentasPage() {
                                     className="px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20"
                                 >
                                     <option value="">Todos los asesores</option>
+                                    <option value="Sin asignar">Sin asignar</option>
                                     <option value="José Morán">José Morán</option>
                                     <option value="Sebastián Jaramillo">Sebastián Jaramillo</option>
                                     <option value="Gastón Calderón">Gastón Calderón</option>
                                     <option value="Rafaela Velásquez">Rafaela Velásquez</option>
                                     <option value="Milenko Surati">Milenko Surati</option>
-                                    <option value="Sin asignar">Sin asignar</option>
                                 </select>
                             )}
                         </div>

@@ -64,8 +64,10 @@ export default function ClientesPage() {
     const [totalLeads, setTotalLeads] = useState(0);
     const [leadSeleccionado, setLeadSeleccionado] = useState<Lead | null>(null);
     const [porPagina, setPorPagina] = useState(50);
+    const [actualizandoAsesorId, setActualizandoAsesorId] = useState<string | null>(null);
 
     const isAsesor = user?.role === "Asesor";
+    const isSuperAdmin = user?.role === "Super Administrador";
     const canSeeMarketing = user?.role === "Super Administrador" || user?.role === "Administrador de Marketing";
     const canAddLead = !isAsesor;
 
@@ -87,7 +89,11 @@ export default function ClientesPage() {
         }
 
         if (filtroAsesor) {
-            query = query.eq("assigned_to_name", filtroAsesor);
+            if (filtroAsesor === "Sin asignar") {
+                query = query.or('assigned_to_name.is.null,assigned_to_name.eq."Sin asignar"');
+            } else {
+                query = query.eq("assigned_to_name", filtroAsesor);
+            }
         }
 
         if (filtroEstado) query = query.eq("status", filtroEstado);
@@ -99,6 +105,24 @@ export default function ClientesPage() {
             setTotalLeads(count || 0);
         }
         setLoading(false);
+    };
+
+    const handleCambiarAsesor = async (leadId: string, currentAsesor: string | null, nuevoAsesor: string) => {
+        setActualizandoAsesorId(leadId);
+        const now = new Date().toISOString();
+        const updates: any = { assigned_to_name: nuevoAsesor === "Sin asignar" ? null : nuevoAsesor };
+
+        if (!currentAsesor || currentAsesor === "Sin asignar") {
+            updates.assigned_at = now;
+        } else if (nuevoAsesor !== currentAsesor) {
+            updates.reassigned_at = now;
+        }
+
+        const { error } = await supabase.from("leads").update(updates).eq("id", leadId);
+        if (!error) {
+            await fetchLeads();
+        }
+        setActualizandoAsesorId(null);
     };
 
     const totalPaginas = Math.ceil(totalLeads / porPagina);
@@ -149,6 +173,7 @@ export default function ClientesPage() {
                         {!isAsesor && (
                             <select className="form-input md:w-48" value={filtroAsesor} onChange={(e) => { setFiltroAsesor(e.target.value); setPagina(1); }}>
                                 <option value="">Todos los asesores</option>
+                                <option value="Sin asignar">Sin asignar</option>
                                 {ASESORES.map(a => <option key={a} value={a}>{a}</option>)}
                             </select>
                         )}
@@ -224,9 +249,26 @@ export default function ClientesPage() {
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-4">
-                                                    <div className="flex items-center gap-1.5 text-sm text-[#1A1A1A]/70 whitespace-nowrap">
-                                                        <User className="w-3.5 h-3.5" />{lead.assigned_to_name || lead.source || "—"}
-                                                    </div>
+                                                    {isSuperAdmin ? (
+                                                        <div className="flex items-center gap-2">
+                                                            <select
+                                                                className="bg-[#EBEAE6]/50 border border-transparent rounded-lg text-[10px] py-1 px-1.5 focus:ring-1 focus:ring-[#1E2D40] outline-none font-bold text-[#1E2D40] cursor-pointer hover:bg-[#EBEAE6]/80"
+                                                                value={lead.assigned_to_name || "Sin asignar"}
+                                                                onChange={(e) => handleCambiarAsesor(lead.id, lead.assigned_to_name, e.target.value)}
+                                                                disabled={actualizandoAsesorId === lead.id}
+                                                            >
+                                                                <option value="Sin asignar">Sin asignar</option>
+                                                                {ASESORES.map(a => <option key={a} value={a}>{a}</option>)}
+                                                            </select>
+                                                            {actualizandoAsesorId === lead.id && (
+                                                                <div className="w-3 h-3 border-2 border-[#1E2D40] border-t-transparent rounded-full animate-spin" />
+                                                            )}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex items-center gap-1.5 text-sm text-[#1A1A1A]/70 whitespace-nowrap">
+                                                            <User className="w-3.5 h-3.5" />{lead.assigned_to_name || lead.source || "—"}
+                                                        </div>
+                                                    )}
                                                 </td>
                                                 <td className="px-4 py-4">
                                                     <div className="flex items-center gap-1.5 text-xs text-[#1A1A1A]/50 whitespace-nowrap">
