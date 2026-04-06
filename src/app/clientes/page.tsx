@@ -210,7 +210,7 @@ export default function ClientesPage() {
                                                 <td className="px-4 py-4">
                                                     <div className="flex items-center gap-3">
                                                         <div className="w-8 h-8 rounded-full bg-[#1E2D40]/10 flex items-center justify-center text-[#1E2D40] font-bold text-xs flex-shrink-0">
-                                                            {lead.name?.charAt(0)?.toUpperCase()}
+                                                            {lead.name ? lead.name.charAt(0).toUpperCase() : "?"}
                                                         </div>
                                                         <button onClick={() => setLeadSeleccionado(lead)} className="font-bold text-[#1E2D40] hover:underline text-sm whitespace-nowrap">
                                                             {lead.name}
@@ -318,16 +318,18 @@ export default function ClientesPage() {
                 <LeadProfilePanel
                     lead={{
                         id: leadSeleccionado.id,
-                        nombre: leadSeleccionado.name,
-                        correo: leadSeleccionado.email || "",
-                        telefono: leadSeleccionado.phone || "",
-                        estado: leadSeleccionado.status || "Lead Entrante",
-                        tipo_propiedad: leadSeleccionado.formulario || "",
-                        asesor: leadSeleccionado.assigned_to_name || leadSeleccionado.source || "",
+                        name: leadSeleccionado.name,
+                        email: leadSeleccionado.email || "",
+                        phone: leadSeleccionado.phone || "",
+                        status: leadSeleccionado.status || "Lead Entrante",
+                        formulario: leadSeleccionado.formulario || "",
+                        assigned_to_name: leadSeleccionado.assigned_to_name || leadSeleccionado.source || "",
                         canal: leadSeleccionado.canal || "",
-                        fecha_creacion: leadSeleccionado.created_at?.slice(0, 10) || "",
-                        fecha_asignacion: leadSeleccionado.assigned_at?.slice(0, 10) || "",
-                        fecha_reasignacion: leadSeleccionado.reassigned_at?.slice(0, 10) || null,
+                        created_at: leadSeleccionado.created_at || "",
+                        assigned_at: leadSeleccionado.assigned_at || "",
+                        reassigned_at: leadSeleccionado.reassigned_at || null,
+                        source: leadSeleccionado.source || null,
+                        monto_negociacion: null
                     }}
                     onClose={() => setLeadSeleccionado(null)}
                 />

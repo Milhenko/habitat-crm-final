@@ -229,10 +229,10 @@ export default function LeadProfilePanel({ lead, onClose }: LeadProfilePanelProp
                 <div className="bg-[#1E2D40] px-6 py-4 flex items-center justify-between flex-shrink-0">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white font-black text-lg">
-                            {lead.name.charAt(0).toUpperCase()}
+                            {lead.name ? lead.name.charAt(0).toUpperCase() : "?"}
                         </div>
                         <div>
-                            <h2 className="text-white font-black text-lg tracking-tight">{lead.name}</h2>
+                            <h2 className="text-white font-black text-lg tracking-tight">{lead.name || "Sin nombre"}</h2>
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${ESTADO_COLORS[etapaActual] || "bg-gray-100 text-gray-600"}`}>
                                 {etapaActual}
                             </span>
@@ -252,7 +252,7 @@ export default function LeadProfilePanel({ lead, onClose }: LeadProfilePanelProp
                             <div className="space-y-4">
                                 <div>
                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Nombre completo</p>
-                                    <p className="text-sm font-bold text-[#1A1A1A]">{lead.name}</p>
+                                    <p className="text-sm font-bold text-[#1A1A1A]">{lead.name || "—"}</p>
                                 </div>
                                 <div>
                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Teléfono</p>
@@ -297,7 +297,7 @@ export default function LeadProfilePanel({ lead, onClose }: LeadProfilePanelProp
                                         </div>
                                     ) : (
                                         <div className="flex items-center gap-2 text-sm text-[#1A1A1A]">
-                                            <User className="w-4 h-4 text-gray-400" />{lead.assigned_to_name || "Sin asignar"}
+                                            <User className="w-4 h-4 text-gray-400" />{lead.assigned_to_name || lead.source || "Sin asignar"}
                                         </div>
                                     )}
                                 </div>
