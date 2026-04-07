@@ -476,6 +476,47 @@ export default function LeadProfilePanel({ lead, onClose, mode = "edit" }: LeadP
                             </div>
                         </div>
 
+                        {/* COLUMNA 2: Guión */}
+                        <div className="bg-white rounded-xl shadow p-6 flex flex-col">
+                            <h3 className="text-xs font-black text-[#1E2D40] uppercase tracking-widest border-b border-gray-100 pb-3 mb-4 flex-shrink-0">Guión de Aterrizaje</h3>
+                            <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+                                {BLOQUES.map((bloque, idx) => (
+                                    <div key={idx} className="border border-gray-100 rounded-xl overflow-hidden">
+                                        <button onClick={() => toggleBloque(idx)} className="w-full px-4 py-3 flex items-center justify-between bg-[#EBEAE6]/50 hover:bg-[#EBEAE6] transition-colors">
+                                            <span className="text-xs font-black text-[#1E2D40] uppercase tracking-wider">{bloque.titulo}</span>
+                                            {bloquesAbiertos[idx] ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+                                        </button>
+                                        {bloquesAbiertos[idx] && (
+                                            <div className="p-4 space-y-4">
+                                                {bloque.preguntas.map((pregunta, pIdx) => (
+                                                    <div key={pIdx}>
+                                                        <label className="block text-xs font-medium text-[#1A1A1A] mb-1.5 leading-relaxed">{pregunta}</label>
+                                                        <textarea
+                                                            rows={2}
+                                                            className="w-full px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-xs resize-none focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20"
+                                                            placeholder="Respuesta..."
+                                                            value={respuestas[pregunta] || ""}
+                                                            onChange={(e) => setRespuestas(prev => ({ ...prev, [pregunta]: e.target.value }))}
+                                                        />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="mt-4 pt-4 border-t border-gray-100 flex-shrink-0">
+                                <button
+                                    onClick={handleGuardarRespuestas}
+                                    disabled={guardando}
+                                    className={`w-full py-2.5 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2 ${guardadoOk ? "bg-green-500 text-white" : "bg-[#1E2D40] hover:bg-[#1E2D40]/90 text-white"}`}
+                                >
+                                    {guardando ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : guardadoOk ? "✓ Guardado" : <><Save className="w-3.5 h-3.5" /> Guardar Respuestas</>}
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* COLUMNA 3: Actividades o Placeholder */}
                         {mode === "create" ? (
                             <div className="h-full flex flex-col items-center justify-center text-center p-12 bg-gray-50 border-2 border-dashed border-gray-200 rounded-3xl">
                                 <div className="w-16 h-16 bg-green-100 text-green-600 rounded-2xl flex items-center justify-center mb-4">
@@ -487,101 +528,58 @@ export default function LeadProfilePanel({ lead, onClose, mode = "edit" }: LeadP
                                 </p>
                             </div>
                         ) : (
-                            <>
-                                {/* COLUMNA 2: Guión */}
-                                <div className="bg-white rounded-xl shadow p-6 flex flex-col">
-                                    <h3 className="text-xs font-black text-[#1E2D40] uppercase tracking-widest border-b border-gray-100 pb-3 mb-4 flex-shrink-0">Guión de Aterrizaje</h3>
-                                    <div className="flex-1 overflow-y-auto space-y-3 pr-1">
-                                        {BLOQUES.map((bloque, idx) => (
-                                            <div key={idx} className="border border-gray-100 rounded-xl overflow-hidden">
-                                                <button onClick={() => toggleBloque(idx)} className="w-full px-4 py-3 flex items-center justify-between bg-[#EBEAE6]/50 hover:bg-[#EBEAE6] transition-colors">
-                                                    <span className="text-xs font-black text-[#1E2D40] uppercase tracking-wider">{bloque.titulo}</span>
-                                                    {bloquesAbiertos[idx] ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
-                                                </button>
-                                                {bloquesAbiertos[idx] && (
-                                                    <div className="p-4 space-y-4">
-                                                        {bloque.preguntas.map((pregunta, pIdx) => (
-                                                            <div key={pIdx}>
-                                                                <label className="block text-xs font-medium text-[#1A1A1A] mb-1.5 leading-relaxed">{pregunta}</label>
-                                                                <textarea
-                                                                    rows={2}
-                                                                    className="w-full px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-xs resize-none focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20"
-                                                                    placeholder="Respuesta..."
-                                                                    value={respuestas[pregunta] || ""}
-                                                                    onChange={(e) => setRespuestas(prev => ({ ...prev, [pregunta]: e.target.value }))}
-                                                                />
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                )}
+                            <div className="bg-white rounded-xl shadow p-6 flex flex-col gap-5">
+                                <h3 className="text-xs font-black text-[#1E2D40] uppercase tracking-widest border-b border-gray-100 pb-3">Actividades</h3>
+                                <div className="bg-[#1E2D40] rounded-xl p-4 flex items-center justify-between">
+                                    <div>
+                                        <p className="text-white font-bold text-sm">Agente IA</p>
+                                        <p className="text-white/50 text-[10px]">Automatización de seguimiento</p>
+                                    </div>
+                                    <button onClick={() => setIaActivo(!iaActivo)} className="flex items-center gap-2 text-white">
+                                        {iaActivo ? <><ToggleRight className="w-8 h-8 text-green-400" /><span className="text-xs font-bold text-green-400">ON</span></> : <><ToggleLeft className="w-8 h-8 text-white/40" /><span className="text-xs font-bold text-white/40">OFF</span></>}
+                                    </button>
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Registrar Llamada / Nota</p>
+                                    <textarea
+                                        rows={3}
+                                        className="w-full px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-xs resize-none focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20"
+                                        placeholder="Escribe aquí el resultado de la llamada o una nota..."
+                                        value={nuevaNota}
+                                        onChange={(e) => setNuevaNota(e.target.value)}
+                                    />
+                                    <button
+                                        onClick={handleGuardarNota}
+                                        className="mt-2 w-full py-2 bg-[#1E2D40] hover:bg-[#1E2D40]/90 text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <MessageSquare className="w-3.5 h-3.5" /> Guardar Nota
+                                    </button>
+                                </div>
+                                <div className="flex-1">
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Historial</p>
+                                    <div className="space-y-3 max-h-48 overflow-y-auto pr-1">
+                                        {historial.length === 0 ? (
+                                            <p className="text-xs text-gray-300 text-center py-4">Sin actividad registrada</p>
+                                        ) : historial.map((item, idx) => (
+                                            <div key={idx} className="flex gap-3">
+                                                <div className="w-8 h-8 rounded-full bg-[#EBEAE6] flex items-center justify-center flex-shrink-0">
+                                                    <MessageSquare className="w-3.5 h-3.5 text-[#1E2D40]" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs text-[#1A1A1A] leading-relaxed">{item.respuesta}</p>
+                                                    <p className="text-[10px] text-gray-400 mt-0.5">{new Date(item.created_at).toLocaleString("es-EC")} — {item.asesor_name}</p>
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
-                                    <div className="mt-4 pt-4 border-t border-gray-100 flex-shrink-0">
-                                        <button
-                                            onClick={handleGuardarRespuestas}
-                                            disabled={guardando}
-                                            className={`w-full py-2.5 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2 ${guardadoOk ? "bg-green-500 text-white" : "bg-[#1E2D40] hover:bg-[#1E2D40]/90 text-white"}`}
-                                        >
-                                            {guardando ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : guardadoOk ? "✓ Guardado" : <><Save className="w-3.5 h-3.5" /> Guardar Respuestas</>}
-                                        </button>
-                                    </div>
                                 </div>
-
-                                {/* COLUMNA 3: Actividades */}
-                                <div className="bg-white rounded-xl shadow p-6 flex flex-col gap-5">
-                                    <h3 className="text-xs font-black text-[#1E2D40] uppercase tracking-widest border-b border-gray-100 pb-3">Actividades</h3>
-                                    <div className="bg-[#1E2D40] rounded-xl p-4 flex items-center justify-between">
-                                        <div>
-                                            <p className="text-white font-bold text-sm">Agente IA</p>
-                                            <p className="text-white/50 text-[10px]">Automatización de seguimiento</p>
-                                        </div>
-                                        <button onClick={() => setIaActivo(!iaActivo)} className="flex items-center gap-2 text-white">
-                                            {iaActivo ? <><ToggleRight className="w-8 h-8 text-green-400" /><span className="text-xs font-bold text-green-400">ON</span></> : <><ToggleLeft className="w-8 h-8 text-white/40" /><span className="text-xs font-bold text-white/40">OFF</span></>}
-                                        </button>
-                                    </div>
-                                    <div>
-                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Registrar Llamada / Nota</p>
-                                        <textarea
-                                            rows={3}
-                                            className="w-full px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-xs resize-none focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20"
-                                            placeholder="Escribe aquí el resultado de la llamada o una nota..."
-                                            value={nuevaNota}
-                                            onChange={(e) => setNuevaNota(e.target.value)}
-                                        />
-                                        <button
-                                            onClick={handleGuardarNota}
-                                            className="mt-2 w-full py-2 bg-[#1E2D40] hover:bg-[#1E2D40]/90 text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2"
-                                        >
-                                            <MessageSquare className="w-3.5 h-3.5" /> Guardar Nota
-                                        </button>
-                                    </div>
-                                    <div className="flex-1">
-                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Historial</p>
-                                        <div className="space-y-3 max-h-48 overflow-y-auto pr-1">
-                                            {historial.length === 0 ? (
-                                                <p className="text-xs text-gray-300 text-center py-4">Sin actividad registrada</p>
-                                            ) : historial.map((item, idx) => (
-                                                <div key={idx} className="flex gap-3">
-                                                    <div className="w-8 h-8 rounded-full bg-[#EBEAE6] flex items-center justify-center flex-shrink-0">
-                                                        <MessageSquare className="w-3.5 h-3.5 text-[#1E2D40]" />
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-xs text-[#1A1A1A] leading-relaxed">{item.respuesta}</p>
-                                                        <p className="text-[10px] text-gray-400 mt-0.5">{new Date(item.created_at).toLocaleString("es-EC")} — {item.asesor_name}</p>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Propuestas Enviadas</p>
-                                        <button className="w-full border-2 border-dashed border-gray-200 hover:border-[#1E2D40] rounded-xl p-3 text-xs text-gray-400 hover:text-[#1E2D40] transition-all flex items-center justify-center gap-2">
-                                            <Upload className="w-4 h-4" /> Subir archivo / propuesta
-                                        </button>
-                                    </div>
+                                <div>
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Propuestas Enviadas</p>
+                                    <button className="w-full border-2 border-dashed border-gray-200 hover:border-[#1E2D40] rounded-xl p-3 text-xs text-gray-400 hover:text-[#1E2D40] transition-all flex items-center justify-center gap-2">
+                                        <Upload className="w-4 h-4" /> Subir archivo / propuesta
+                                    </button>
                                 </div>
-                            </>
+                            </div>
                         )}
 
                     </div>
