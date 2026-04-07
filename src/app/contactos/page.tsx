@@ -70,7 +70,7 @@ export default function ClientesPage() {
     const isAsesor = user?.role === "Asesor";
     const isSuperAdmin = user?.role === "Super Administrador";
     const canSeeMarketing = user?.role === "Super Administrador" || user?.role === "Administrador de Marketing";
-    const canAddLead = !isAsesor;
+    const canAddLead = true;
 
     useEffect(() => {
         fetchLeads();
