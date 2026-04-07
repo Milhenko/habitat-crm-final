@@ -85,7 +85,7 @@ export default function DashboardPage() {
                         <h3 className="font-bold text-gray-900">Captación</h3>
                         <p className="text-xs text-gray-500 mt-1">Registra nuevas propiedades</p>
                     </a>
-                    <a href="/clientes" className="card p-6 hover:shadow-lg transition-all hover:border-purple-200 group">
+                    <a href="/contactos" className="card p-6 hover:shadow-lg transition-all hover:border-purple-200 group">
                         <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center mb-3 group-hover:bg-purple-600 transition-colors">
                             <Users className="w-5 h-5 text-purple-600 group-hover:text-white transition-colors" />
                         </div>

@@ -28,7 +28,7 @@ export default function LoginPage() {
     }
 
     if (data.user) {
-      router.push('/clientes')
+      router.push('/contactos')
     }
   }
 

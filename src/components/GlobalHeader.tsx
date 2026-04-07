@@ -15,7 +15,7 @@ export default function GlobalHeader() {
         <nav className="bg-[#1E2D40] shadow-lg sticky top-0 z-50">
             <div className="max-w-[1600px] mx-auto px-6 py-4 flex items-center justify-between">
                 {/* Logo */}
-                <Link href="/clientes" className="flex items-center">
+                <Link href="/contactos" className="flex items-center">
                     <img
                         src="/images/logo.png"
                         alt="Habitat Realty Group"
@@ -25,7 +25,7 @@ export default function GlobalHeader() {
 
                 {/* Navigation Links */}
                 <div className="flex items-center gap-1">
-                    <Link href="/clientes" className="px-4 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all">
+                    <Link href="/contactos" className="px-4 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all">
                         Contactos
                     </Link>
                     <Link href="/captacion" className="px-4 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all">
