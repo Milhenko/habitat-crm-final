@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Phone, Mail, User, Building2, MessageSquare, Upload, Save, ToggleLeft, ToggleRight, ChevronDown, ChevronUp, DollarSign } from "lucide-react";
+import { X, Phone, Mail, User, Building2, MessageSquare, Upload, Save, ToggleLeft, ToggleRight, ChevronDown, ChevronUp, DollarSign, UserPlus } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 
@@ -24,6 +24,7 @@ interface Lead {
 interface LeadProfilePanelProps {
     lead: Lead | null;
     onClose: () => void;
+    mode?: "create" | "edit";
 }
 
 const ETAPAS = [
@@ -62,7 +63,7 @@ const ESTADO_COLORS: Record<string, string> = {
     "Descartados / En Pausa": "bg-red-100 text-red-700",
 };
 
-export default function LeadProfilePanel({ lead, onClose }: LeadProfilePanelProps) {
+export default function LeadProfilePanel({ lead, onClose, mode = "edit" }: LeadProfilePanelProps) {
     const { user } = useAuth();
     const isSuperAdmin = user?.role === "Super Administrador";
     const [iaActivo, setIaActivo] = useState(false);
@@ -78,14 +79,49 @@ export default function LeadProfilePanel({ lead, onClose }: LeadProfilePanelProp
     const [guardandoMonto, setGuardandoMonto] = useState(false);
     const [actualizandoAsesor, setActualizandoAsesor] = useState(false);
 
+    // Estados para modo CREATE
+    const [newName, setNewName] = useState("");
+    const [newPhone, setNewPhone] = useState("");
+    const [newEmail, setNewEmail] = useState("");
+    const [newAsesor, setNewAsesor] = useState("Sin asignar");
+    const [newCanal, setNewCanal] = useState("WhatsApp Directo");
+    const [creando, setCreando] = useState(false);
+
     useEffect(() => {
-        if (lead) {
+        if (lead && mode === "edit") {
             fetchNotas();
             fetchRespuestas();
             fetchMonto();
             setEtapaActual(lead.status);
         }
-    }, [lead]);
+    }, [lead, mode]);
+
+    const handleCrearContacto = async () => {
+        if (!newName.trim() || !newPhone.trim()) {
+            alert("El nombre y el teléfono son obligatorios");
+            return;
+        }
+
+        setCreando(true);
+        const { error } = await supabase.from("leads").insert({
+            name: newName,
+            phone: newPhone,
+            email: newEmail || null,
+            assigned_to_name: newAsesor === "Sin asignar" ? null : newAsesor,
+            canal: newCanal,
+            status: "Lead Entrante",
+            source: "Manual (CRM)"
+        });
+
+        if (!error) {
+            console.log("✅ Contacto creado correctamente");
+            onClose();
+        } else {
+            console.error("❌ Error al crear contacto:", error);
+            alert("Error al crear el contacto: " + error.message);
+        }
+        setCreando(false);
+    };
 
     const fetchMonto = async () => {
         if (!lead) return;
@@ -232,12 +268,14 @@ export default function LeadProfilePanel({ lead, onClose }: LeadProfilePanelProp
                 <div className="bg-[#1E2D40] px-6 py-4 flex items-center justify-between flex-shrink-0">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white font-black text-lg">
-                            {lead.name ? lead.name.charAt(0).toUpperCase() : "?"}
+                            {mode === "create" ? "+" : (lead.name ? lead.name.charAt(0).toUpperCase() : "?")}
                         </div>
                         <div>
-                            <h2 className="text-white font-black text-lg tracking-tight">{lead.name || "Sin nombre"}</h2>
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${ESTADO_COLORS[etapaActual] || "bg-gray-100 text-gray-600"}`}>
-                                {etapaActual}
+                            <h2 className="text-white font-black text-lg tracking-tight">
+                                {mode === "create" ? "Nuevo Contacto" : (lead.name || "Sin nombre")}
+                            </h2>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${mode === "create" ? "bg-yellow-100 text-yellow-700" : (ESTADO_COLORS[etapaActual] || "bg-gray-100 text-gray-600")}`}>
+                                {mode === "create" ? "Lead Entrante" : etapaActual}
                             </span>
                         </div>
                     </div>
@@ -255,11 +293,29 @@ export default function LeadProfilePanel({ lead, onClose }: LeadProfilePanelProp
                             <div className="space-y-4">
                                 <div>
                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Nombre completo</p>
-                                    <p className="text-sm font-bold text-[#1A1A1A]">{lead.name || "—"}</p>
+                                    {mode === "create" ? (
+                                        <input
+                                            type="text"
+                                            className="w-full px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20"
+                                            placeholder="Nombre del cliente"
+                                            value={newName}
+                                            onChange={(e) => setNewName(e.target.value)}
+                                        />
+                                    ) : (
+                                        <p className="text-sm font-bold text-[#1A1A1A]">{lead.name || "—"}</p>
+                                    )}
                                 </div>
                                 <div>
                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Teléfono</p>
-                                    {lead.phone ? (
+                                    {mode === "create" ? (
+                                        <input
+                                            type="tel"
+                                            className="w-full px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20"
+                                            placeholder="Ej: 0998887776"
+                                            value={newPhone}
+                                            onChange={(e) => setNewPhone(e.target.value)}
+                                        />
+                                    ) : lead.phone ? (
                                         <a href={`tel:${lead.phone}`} className="flex items-center gap-2 text-sm font-bold text-[#1E2D40] hover:underline">
                                             <div className="w-8 h-8 bg-[#1E2D40] rounded-lg flex items-center justify-center flex-shrink-0"><Phone className="w-4 h-4 text-white" /></div>
                                             {lead.phone}
@@ -270,7 +326,15 @@ export default function LeadProfilePanel({ lead, onClose }: LeadProfilePanelProp
                                 </div>
                                 <div>
                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Correo</p>
-                                    {lead.email ? (
+                                    {mode === "create" ? (
+                                        <input
+                                            type="email"
+                                            className="w-full px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20"
+                                            placeholder="correo@ejemplo.com"
+                                            value={newEmail}
+                                            onChange={(e) => setNewEmail(e.target.value)}
+                                        />
+                                    ) : lead.email ? (
                                         <a href={`mailto:${lead.email}`} className="flex items-center gap-2 text-sm font-bold text-[#1E2D40] hover:underline break-all">
                                             <div className="w-8 h-8 bg-[#1E2D40] rounded-lg flex items-center justify-center flex-shrink-0"><Mail className="w-4 h-4 text-white" /></div>
                                             {lead.email}
@@ -281,13 +345,13 @@ export default function LeadProfilePanel({ lead, onClose }: LeadProfilePanelProp
                                 </div>
                                 <div>
                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Asesor Asignado</p>
-                                    {isSuperAdmin ? (
+                                    {isSuperAdmin || mode === "create" ? (
                                         <div className="relative">
                                             <select
                                                 className="w-full px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20 appearance-none"
-                                                value={lead.assigned_to_name || "Sin asignar"}
-                                                onChange={(e) => handleCambiarAsesor(e.target.value)}
-                                                disabled={actualizandoAsesor}
+                                                value={mode === "create" ? newAsesor : (lead.assigned_to_name || "Sin asignar")}
+                                                onChange={(e) => mode === "create" ? setNewAsesor(e.target.value) : handleCambiarAsesor(e.target.value)}
+                                                disabled={actualizandoAsesor || creando}
                                             >
                                                 <option value="Sin asignar">Sin asignar</option>
                                                 <option value="Gastón Calderón">Gastón Calderón</option>
@@ -296,7 +360,7 @@ export default function LeadProfilePanel({ lead, onClose }: LeadProfilePanelProp
                                                 <option value="Sebastián Jaramillo">Sebastián Jaramillo</option>
                                                 <option value="Rafaela Velásquez">Rafaela Velásquez</option>
                                             </select>
-                                            {actualizandoAsesor && <div className="absolute right-3 top-2.5 w-4 h-4 border-2 border-[#1E2D40] border-t-transparent rounded-full animate-spin" />}
+                                            {(actualizandoAsesor || creando) && <div className="absolute right-3 top-2.5 w-4 h-4 border-2 border-[#1E2D40] border-t-transparent rounded-full animate-spin" />}
                                         </div>
                                     ) : (
                                         <div className="flex items-center gap-2 text-sm text-[#1A1A1A]">
@@ -305,165 +369,220 @@ export default function LeadProfilePanel({ lead, onClose }: LeadProfilePanelProp
                                     )}
                                 </div>
 
-                                {/* ETAPA */}
+                                {/* ETAPA (Sólo en modo edit) */}
+                                {mode === "edit" && (
+                                    <div>
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Etapa de Negociación</p>
+                                        <div className="relative">
+                                            <select
+                                                className="w-full px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20"
+                                                value={etapaActual}
+                                                onChange={(e) => handleCambiarEtapa(e.target.value)}
+                                                disabled={actualizandoEtapa}
+                                            >
+                                                {ETAPAS.map(e => <option key={e} value={e}>{e}</option>)}
+                                            </select>
+                                            {actualizandoEtapa && <div className="absolute right-3 top-2.5 w-4 h-4 border-2 border-[#1E2D40] border-t-transparent rounded-full animate-spin" />}
+                                        </div>
+                                        <p className="text-[10px] text-gray-400 mt-1">Se actualiza en el pipeline automáticamente</p>
+                                    </div>
+                                )}
+
+                                {/* MONTO (Sólo en modo edit) */}
+                                {mode === "edit" && (
+                                    <div>
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Monto de Negociación</p>
+                                        <div className="flex gap-2">
+                                            <div className="relative flex-1">
+                                                <span className="absolute left-3 top-2 text-gray-400 text-sm font-bold">$</span>
+                                                <input
+                                                    type="number"
+                                                    className="w-full pl-7 pr-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20"
+                                                    placeholder="0"
+                                                    value={monto}
+                                                    onChange={(e) => setMonto(e.target.value)}
+                                                    onBlur={handleGuardarMonto}
+                                                />
+                                            </div>
+                                            <button
+                                                onClick={handleGuardarMonto}
+                                                disabled={guardandoMonto}
+                                                className="px-3 py-2 bg-[#1E2D40] text-white rounded-lg text-xs font-bold hover:bg-[#1E2D40]/90 transition-all"
+                                            >
+                                                {guardandoMonto ? "..." : <DollarSign className="w-4 h-4" />}
+                                            </button>
+                                        </div>
+                                        <p className="text-[10px] text-gray-400 mt-1">Valor estimado en USD</p>
+                                    </div>
+                                )}
+
                                 <div>
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Etapa de Negociación</p>
-                                    <div className="relative">
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Medio de Contacto (Canal)</p>
+                                    {mode === "create" ? (
                                         <select
                                             className="w-full px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20"
-                                            value={etapaActual}
-                                            onChange={(e) => handleCambiarEtapa(e.target.value)}
-                                            disabled={actualizandoEtapa}
+                                            value={newCanal}
+                                            onChange={(e) => setNewCanal(e.target.value)}
                                         >
-                                            {ETAPAS.map(e => <option key={e} value={e}>{e}</option>)}
+                                            <option value="WhatsApp Directo">WhatsApp Directo</option>
+                                            <option value="Referido">Referido</option>
+                                            <option value="Llamada Telefónica">Llamada Telefónica</option>
+                                            <option value="Evento/Feria">Evento/Feria</option>
+                                            <option value="Walk-in">Walk-in</option>
+                                            <option value="Web">Web</option>
                                         </select>
-                                        {actualizandoEtapa && <div className="absolute right-3 top-2.5 w-4 h-4 border-2 border-[#1E2D40] border-t-transparent rounded-full animate-spin" />}
-                                    </div>
-                                    <p className="text-[10px] text-gray-400 mt-1">Se actualiza en el pipeline automáticamente</p>
+                                    ) : (
+                                        <span className="text-[10px] font-bold px-3 py-1.5 bg-[#1E2D40]/10 text-[#1E2D40] rounded-full">{lead.canal || "—"}</span>
+                                    )}
                                 </div>
-
-                                {/* MONTO */}
-                                <div>
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Monto de Negociación</p>
-                                    <div className="flex gap-2">
-                                        <div className="relative flex-1">
-                                            <span className="absolute left-3 top-2 text-gray-400 text-sm font-bold">$</span>
-                                            <input
-                                                type="number"
-                                                className="w-full pl-7 pr-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20"
-                                                placeholder="0"
-                                                value={monto}
-                                                onChange={(e) => setMonto(e.target.value)}
-                                                onBlur={handleGuardarMonto}
-                                            />
+                                {mode === "edit" && (
+                                    <div>
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Fuente</p>
+                                        <div className="flex items-center gap-2 text-sm text-[#1A1A1A]">
+                                            <Building2 className="w-4 h-4 text-gray-400" />{lead.source || "—"}
                                         </div>
+                                    </div>
+                                )}
+
+                                {mode === "edit" ? (
+                                    <div className="pt-3 border-t border-gray-100 grid grid-cols-2 gap-3 text-xs text-gray-500">
+                                        <div>
+                                            <p className="font-black text-[10px] uppercase tracking-widest text-gray-400 mb-0.5">Creado</p>
+                                            <p>{lead.created_at ? new Date(lead.created_at).toLocaleDateString("es-EC") : "—"}</p>
+                                        </div>
+                                        <div>
+                                            <p className="font-black text-[10px] uppercase tracking-widest text-gray-400 mb-0.5">Asignado</p>
+                                            <p>{lead.assigned_at ? new Date(lead.assigned_at).toLocaleDateString("es-EC") : "—"}</p>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="pt-6">
                                         <button
-                                            onClick={handleGuardarMonto}
-                                            disabled={guardandoMonto}
-                                            className="px-3 py-2 bg-[#1E2D40] text-white rounded-lg text-xs font-bold hover:bg-[#1E2D40]/90 transition-all"
+                                            onClick={handleCrearContacto}
+                                            disabled={creando}
+                                            className="w-full py-4 bg-green-600 hover:bg-green-700 text-white font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-green-200 transition-all flex items-center justify-center gap-3 disabled:bg-gray-300 disabled:shadow-none"
                                         >
-                                            {guardandoMonto ? "..." : <DollarSign className="w-4 h-4" />}
+                                            {creando ? (
+                                                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                            ) : (
+                                                <>
+                                                    <User className="w-5 h-5" />
+                                                    Crear Contacto
+                                                </>
+                                            )}
                                         </button>
                                     </div>
-                                    <p className="text-[10px] text-gray-400 mt-1">Valor estimado en USD</p>
-                                </div>
-
-                                <div>
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Medio de Contacto</p>
-                                    <span className="text-[10px] font-bold px-3 py-1.5 bg-[#1E2D40]/10 text-[#1E2D40] rounded-full">{lead.canal || "—"}</span>
-                                </div>
-                                <div>
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Fuente</p>
-                                    <div className="flex items-center gap-2 text-sm text-[#1A1A1A]">
-                                        <Building2 className="w-4 h-4 text-gray-400" />{lead.source || "—"}
-                                    </div>
-                                </div>
-                                <div className="pt-3 border-t border-gray-100 grid grid-cols-2 gap-3 text-xs text-gray-500">
-                                    <div>
-                                        <p className="font-black text-[10px] uppercase tracking-widest text-gray-400 mb-0.5">Creado</p>
-                                        <p>{lead.created_at ? new Date(lead.created_at).toLocaleDateString("es-EC") : "—"}</p>
-                                    </div>
-                                    <div>
-                                        <p className="font-black text-[10px] uppercase tracking-widest text-gray-400 mb-0.5">Asignado</p>
-                                        <p>{lead.assigned_at ? new Date(lead.assigned_at).toLocaleDateString("es-EC") : "—"}</p>
-                                    </div>
-                                </div>
+                                )}
                             </div>
                         </div>
 
-                        {/* COLUMNA 2: Guión */}
-                        <div className="bg-white rounded-xl shadow p-6 flex flex-col">
-                            <h3 className="text-xs font-black text-[#1E2D40] uppercase tracking-widest border-b border-gray-100 pb-3 mb-4 flex-shrink-0">Guión de Aterrizaje</h3>
-                            <div className="flex-1 overflow-y-auto space-y-3 pr-1">
-                                {BLOQUES.map((bloque, idx) => (
-                                    <div key={idx} className="border border-gray-100 rounded-xl overflow-hidden">
-                                        <button onClick={() => toggleBloque(idx)} className="w-full px-4 py-3 flex items-center justify-between bg-[#EBEAE6]/50 hover:bg-[#EBEAE6] transition-colors">
-                                            <span className="text-xs font-black text-[#1E2D40] uppercase tracking-wider">{bloque.titulo}</span>
-                                            {bloquesAbiertos[idx] ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
-                                        </button>
-                                        {bloquesAbiertos[idx] && (
-                                            <div className="p-4 space-y-4">
-                                                {bloque.preguntas.map((pregunta, pIdx) => (
-                                                    <div key={pIdx}>
-                                                        <label className="block text-xs font-medium text-[#1A1A1A] mb-1.5 leading-relaxed">{pregunta}</label>
-                                                        <textarea
-                                                            rows={2}
-                                                            className="w-full px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-xs resize-none focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20"
-                                                            placeholder="Respuesta..."
-                                                            value={respuestas[pregunta] || ""}
-                                                            onChange={(e) => setRespuestas(prev => ({ ...prev, [pregunta]: e.target.value }))}
-                                                        />
+                        {mode === "create" ? (
+                            <div className="h-full flex flex-col items-center justify-center text-center p-12 bg-gray-50 border-2 border-dashed border-gray-200 rounded-3xl">
+                                <div className="w-16 h-16 bg-green-100 text-green-600 rounded-2xl flex items-center justify-center mb-4">
+                                    <UserPlus className="w-8 h-8" />
+                                </div>
+                                <h3 className="text-lg font-black text-[#1E2D40] mb-2 font-outfit">Nuevo Registro de Contacto</h3>
+                                <p className="text-sm text-gray-500 max-w-xs">
+                                    Completa la información básica a la izquierda para crear un nuevo contacto en el sistema.
+                                </p>
+                            </div>
+                        ) : (
+                            <>
+                                {/* COLUMNA 2: Guión */}
+                                <div className="bg-white rounded-xl shadow p-6 flex flex-col">
+                                    <h3 className="text-xs font-black text-[#1E2D40] uppercase tracking-widest border-b border-gray-100 pb-3 mb-4 flex-shrink-0">Guión de Aterrizaje</h3>
+                                    <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+                                        {BLOQUES.map((bloque, idx) => (
+                                            <div key={idx} className="border border-gray-100 rounded-xl overflow-hidden">
+                                                <button onClick={() => toggleBloque(idx)} className="w-full px-4 py-3 flex items-center justify-between bg-[#EBEAE6]/50 hover:bg-[#EBEAE6] transition-colors">
+                                                    <span className="text-xs font-black text-[#1E2D40] uppercase tracking-wider">{bloque.titulo}</span>
+                                                    {bloquesAbiertos[idx] ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+                                                </button>
+                                                {bloquesAbiertos[idx] && (
+                                                    <div className="p-4 space-y-4">
+                                                        {bloque.preguntas.map((pregunta, pIdx) => (
+                                                            <div key={pIdx}>
+                                                                <label className="block text-xs font-medium text-[#1A1A1A] mb-1.5 leading-relaxed">{pregunta}</label>
+                                                                <textarea
+                                                                    rows={2}
+                                                                    className="w-full px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-xs resize-none focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20"
+                                                                    placeholder="Respuesta..."
+                                                                    value={respuestas[pregunta] || ""}
+                                                                    onChange={(e) => setRespuestas(prev => ({ ...prev, [pregunta]: e.target.value }))}
+                                                                />
+                                                            </div>
+                                                        ))}
                                                     </div>
-                                                ))}
+                                                )}
                                             </div>
-                                        )}
+                                        ))}
                                     </div>
-                                ))}
-                            </div>
-                            <div className="mt-4 pt-4 border-t border-gray-100 flex-shrink-0">
-                                <button
-                                    onClick={handleGuardarRespuestas}
-                                    disabled={guardando}
-                                    className={`w-full py-2.5 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2 ${guardadoOk ? "bg-green-500 text-white" : "bg-[#1E2D40] hover:bg-[#1E2D40]/90 text-white"}`}
-                                >
-                                    {guardando ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : guardadoOk ? "✓ Guardado" : <><Save className="w-3.5 h-3.5" /> Guardar Respuestas</>}
-                                </button>
-                            </div>
-                        </div>
+                                    <div className="mt-4 pt-4 border-t border-gray-100 flex-shrink-0">
+                                        <button
+                                            onClick={handleGuardarRespuestas}
+                                            disabled={guardando}
+                                            className={`w-full py-2.5 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2 ${guardadoOk ? "bg-green-500 text-white" : "bg-[#1E2D40] hover:bg-[#1E2D40]/90 text-white"}`}
+                                        >
+                                            {guardando ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : guardadoOk ? "✓ Guardado" : <><Save className="w-3.5 h-3.5" /> Guardar Respuestas</>}
+                                        </button>
+                                    </div>
+                                </div>
 
-                        {/* COLUMNA 3: Actividades */}
-                        <div className="bg-white rounded-xl shadow p-6 flex flex-col gap-5">
-                            <h3 className="text-xs font-black text-[#1E2D40] uppercase tracking-widest border-b border-gray-100 pb-3">Actividades</h3>
-                            <div className="bg-[#1E2D40] rounded-xl p-4 flex items-center justify-between">
-                                <div>
-                                    <p className="text-white font-bold text-sm">Agente IA</p>
-                                    <p className="text-white/50 text-[10px]">Automatización de seguimiento</p>
-                                </div>
-                                <button onClick={() => setIaActivo(!iaActivo)} className="flex items-center gap-2 text-white">
-                                    {iaActivo ? <><ToggleRight className="w-8 h-8 text-green-400" /><span className="text-xs font-bold text-green-400">ON</span></> : <><ToggleLeft className="w-8 h-8 text-white/40" /><span className="text-xs font-bold text-white/40">OFF</span></>}
-                                </button>
-                            </div>
-                            <div>
-                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Registrar Llamada / Nota</p>
-                                <textarea
-                                    rows={3}
-                                    className="w-full px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-xs resize-none focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20"
-                                    placeholder="Escribe aquí el resultado de la llamada o una nota..."
-                                    value={nuevaNota}
-                                    onChange={(e) => setNuevaNota(e.target.value)}
-                                />
-                                <button
-                                    onClick={handleGuardarNota}
-                                    className="mt-2 w-full py-2 bg-[#1E2D40] hover:bg-[#1E2D40]/90 text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2"
-                                >
-                                    <MessageSquare className="w-3.5 h-3.5" /> Guardar Nota
-                                </button>
-                            </div>
-                            <div className="flex-1">
-                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Historial</p>
-                                <div className="space-y-3 max-h-48 overflow-y-auto pr-1">
-                                    {historial.length === 0 ? (
-                                        <p className="text-xs text-gray-300 text-center py-4">Sin actividad registrada</p>
-                                    ) : historial.map((item, idx) => (
-                                        <div key={idx} className="flex gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-[#EBEAE6] flex items-center justify-center flex-shrink-0">
-                                                <MessageSquare className="w-3.5 h-3.5 text-[#1E2D40]" />
-                                            </div>
-                                            <div>
-                                                <p className="text-xs text-[#1A1A1A] leading-relaxed">{item.respuesta}</p>
-                                                <p className="text-[10px] text-gray-400 mt-0.5">{new Date(item.created_at).toLocaleString("es-EC")} — {item.asesor_name}</p>
-                                            </div>
+                                {/* COLUMNA 3: Actividades */}
+                                <div className="bg-white rounded-xl shadow p-6 flex flex-col gap-5">
+                                    <h3 className="text-xs font-black text-[#1E2D40] uppercase tracking-widest border-b border-gray-100 pb-3">Actividades</h3>
+                                    <div className="bg-[#1E2D40] rounded-xl p-4 flex items-center justify-between">
+                                        <div>
+                                            <p className="text-white font-bold text-sm">Agente IA</p>
+                                            <p className="text-white/50 text-[10px]">Automatización de seguimiento</p>
                                         </div>
-                                    ))}
+                                        <button onClick={() => setIaActivo(!iaActivo)} className="flex items-center gap-2 text-white">
+                                            {iaActivo ? <><ToggleRight className="w-8 h-8 text-green-400" /><span className="text-xs font-bold text-green-400">ON</span></> : <><ToggleLeft className="w-8 h-8 text-white/40" /><span className="text-xs font-bold text-white/40">OFF</span></>}
+                                        </button>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Registrar Llamada / Nota</p>
+                                        <textarea
+                                            rows={3}
+                                            className="w-full px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-xs resize-none focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20"
+                                            placeholder="Escribe aquí el resultado de la llamada o una nota..."
+                                            value={nuevaNota}
+                                            onChange={(e) => setNuevaNota(e.target.value)}
+                                        />
+                                        <button
+                                            onClick={handleGuardarNota}
+                                            className="mt-2 w-full py-2 bg-[#1E2D40] hover:bg-[#1E2D40]/90 text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2"
+                                        >
+                                            <MessageSquare className="w-3.5 h-3.5" /> Guardar Nota
+                                        </button>
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Historial</p>
+                                        <div className="space-y-3 max-h-48 overflow-y-auto pr-1">
+                                            {historial.length === 0 ? (
+                                                <p className="text-xs text-gray-300 text-center py-4">Sin actividad registrada</p>
+                                            ) : historial.map((item, idx) => (
+                                                <div key={idx} className="flex gap-3">
+                                                    <div className="w-8 h-8 rounded-full bg-[#EBEAE6] flex items-center justify-center flex-shrink-0">
+                                                        <MessageSquare className="w-3.5 h-3.5 text-[#1E2D40]" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs text-[#1A1A1A] leading-relaxed">{item.respuesta}</p>
+                                                        <p className="text-[10px] text-gray-400 mt-0.5">{new Date(item.created_at).toLocaleString("es-EC")} — {item.asesor_name}</p>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Propuestas Enviadas</p>
+                                        <button className="w-full border-2 border-dashed border-gray-200 hover:border-[#1E2D40] rounded-xl p-3 text-xs text-gray-400 hover:text-[#1E2D40] transition-all flex items-center justify-center gap-2">
+                                            <Upload className="w-4 h-4" /> Subir archivo / propuesta
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                            <div>
-                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Propuestas Enviadas</p>
-                                <button className="w-full border-2 border-dashed border-gray-200 hover:border-[#1E2D40] rounded-xl p-3 text-xs text-gray-400 hover:text-[#1E2D40] transition-all flex items-center justify-center gap-2">
-                                    <Upload className="w-4 h-4" /> Subir archivo / propuesta
-                                </button>
-                            </div>
-                        </div>
+                            </>
+                        )}
 
                     </div>
                 </div>

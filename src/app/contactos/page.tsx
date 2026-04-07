@@ -65,6 +65,7 @@ export default function ClientesPage() {
     const [leadSeleccionado, setLeadSeleccionado] = useState<Lead | null>(null);
     const [porPagina, setPorPagina] = useState(50);
     const [actualizandoAsesorId, setActualizandoAsesorId] = useState<string | null>(null);
+    const [showCreatePanel, setShowCreatePanel] = useState(false);
 
     const isAsesor = user?.role === "Asesor";
     const isSuperAdmin = user?.role === "Super Administrador";
@@ -149,7 +150,10 @@ export default function ClientesPage() {
                             <p className="text-xs text-[#1A1A1A]/50 mt-1">{totalLeads} contactos {isAsesor ? "asignados a ti" : "en total"}</p>
                         </div>
                         {canAddLead && (
-                            <button className="flex items-center gap-2 px-5 py-2.5 bg-[#1E2D40] hover:bg-[#1E2D40]/90 text-white font-bold text-sm rounded-xl shadow-lg transition-all">
+                            <button 
+                                onClick={() => setShowCreatePanel(true)}
+                                className="flex items-center gap-2 px-5 py-2.5 bg-[#1E2D40] hover:bg-[#1E2D40]/90 text-white font-bold text-sm rounded-xl shadow-lg transition-all"
+                            >
                                 <Plus className="w-4 h-4" /> Nuevo Contacto
                             </button>
                         )}
@@ -332,6 +336,18 @@ export default function ClientesPage() {
                         monto_negociacion: null
                     }}
                     onClose={() => setLeadSeleccionado(null)}
+                    mode="edit"
+                />
+            )}
+
+            {showCreatePanel && (
+                <LeadProfilePanel
+                    lead={null}
+                    onClose={() => {
+                        setShowCreatePanel(false);
+                        fetchLeads(); // Refresh list after creation
+                    }}
+                    mode="create"
                 />
             )}
         </div>
