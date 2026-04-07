@@ -76,8 +76,27 @@ export default function ClientesPage() {
         fetchLeads();
     }, [pagina, filtroEstado, busqueda, filtroAsesor, porPagina, authLoading]);
 
-    const fetchLeads = async () => {
-        setLoading(true);
+    useEffect(() => {
+        if (!authLoading && user) {
+            const channel = supabase
+                .channel('contactos-realtime')
+                .on('postgres_changes', 
+                    { event: '*', schema: 'public', table: 'leads' }, 
+                    () => {
+                        console.log('🔄 Cambio detectado en Supabase, refrescando contactos...');
+                        fetchLeads(true);
+                    }
+                )
+                .subscribe();
+
+            return () => {
+                supabase.removeChannel(channel);
+            };
+        }
+    }, [user, authLoading]);
+
+    const fetchLeads = async (silent = false) => {
+        if (!silent) setLoading(true);
 
         let query = supabase
             .from("leads")
@@ -105,7 +124,7 @@ export default function ClientesPage() {
             setLeads(data);
             setTotalLeads(count || 0);
         }
-        setLoading(false);
+        if (!silent) setLoading(false);
     };
 
     const handleCambiarAsesor = async (leadId: string, currentAsesor: string | null, nuevoAsesor: string) => {
