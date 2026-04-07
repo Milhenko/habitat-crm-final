@@ -132,12 +132,15 @@ export default function LeadProfilePanel({ lead, onClose }: LeadProfilePanelProp
             setEtapaActual(nuevaEtapa);
             // Actualizar el objeto lead directamente para que se refleje al cerrar
             lead.status = nuevaEtapa;
-
+            console.log("✅ Etapa actualizada correctamente a:", nuevaEtapa);
+            
             // Pequeño delay para feedback visual
             setTimeout(() => {
                 setActualizandoEtapa(false);
             }, 300);
         } else {
+            console.error("❌ Error al actualizar etapa:", error);
+            alert("Error al actualizar la etapa: " + error.message);
             setActualizandoEtapa(false);
         }
     };
