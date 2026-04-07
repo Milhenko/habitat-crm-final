@@ -83,7 +83,7 @@ export default function LeadProfilePanel({ lead, onClose, mode = "edit" }: LeadP
     const [newName, setNewName] = useState("");
     const [newPhone, setNewPhone] = useState("");
     const [newEmail, setNewEmail] = useState("");
-    const [newAsesor, setNewAsesor] = useState("Sin asignar");
+    const [newAsesor, setNewAsesor] = useState(user?.role === "Asesor" ? user?.name || "" : "Sin asignar");
     const [newCanal, setNewCanal] = useState("WhatsApp Directo");
     const [creando, setCreando] = useState(false);
 
@@ -345,7 +345,7 @@ export default function LeadProfilePanel({ lead, onClose, mode = "edit" }: LeadP
                                 </div>
                                 <div>
                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Asesor Asignado</p>
-                                    {isSuperAdmin || mode === "create" ? (
+                                    {isSuperAdmin && mode === "create" ? (
                                         <div className="relative">
                                             <select
                                                 className="w-full px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20 appearance-none"
@@ -361,6 +361,10 @@ export default function LeadProfilePanel({ lead, onClose, mode = "edit" }: LeadP
                                                 <option value="Rafaela Velásquez">Rafaela Velásquez</option>
                                             </select>
                                             {(actualizandoAsesor || creando) && <div className="absolute right-3 top-2.5 w-4 h-4 border-2 border-[#1E2D40] border-t-transparent rounded-full animate-spin" />}
+                                        </div>
+                                    ) : mode === "create" && !isSuperAdmin ? (
+                                        <div className="flex items-center gap-2 text-sm text-[#1A1A1A] px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl">
+                                            <User className="w-4 h-4 text-gray-400" />{user?.name || "Asesor"}
                                         </div>
                                     ) : (
                                         <div className="flex items-center gap-2 text-sm text-[#1A1A1A]">
