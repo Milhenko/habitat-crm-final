@@ -257,7 +257,7 @@ export default function LeadProfilePanel({ lead, onClose, mode = "edit" }: LeadP
         }
     };
 
-    if (!lead) return null;
+    if (!lead && mode !== "create") return null;
 
     const toggleBloque = (idx: number) => setBloquesAbiertos(prev => ({ ...prev, [idx]: !prev[idx] }));
 
