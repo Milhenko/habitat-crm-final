@@ -26,24 +26,36 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     useEffect(() => {
         let mounted = true;
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            if (session?.user) {
-                const { data, error } = await supabase
+        // 1. Primero verificar si ya hay sesión activa
+        const checkSession = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user && mounted) {
+                const { data } = await supabase
                     .from("users")
                     .select("*")
                     .eq("id", session.user.id)
                     .single();
-                
-                if (mounted) {
-                    if (!error && data) setUser(data);
-                    else setUser(null);
-                    setLoading(false);
+                if (data && mounted) {
+                    setUser(data);
                 }
+            }
+            if (mounted) setLoading(false);
+        };
+
+        checkSession();
+
+        // 2. Luego escuchar cambios futuros
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            if (session?.user && mounted) {
+                const { data } = await supabase
+                    .from("users")
+                    .select("*")
+                    .eq("id", session.user.id)
+                    .single();
+                if (data) setUser(data);
+                else setUser(null);
             } else {
-                if (mounted) {
-                    setUser(null);
-                    setLoading(false);
-                }
+                if (mounted) setUser(null);
             }
         });
 
