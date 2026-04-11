@@ -37,6 +37,9 @@ export default function GlobalHeader() {
                     <Link href="/ventas" className="px-4 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all">
                         Pipeline de Ventas
                     </Link>
+                    <Link href="/comunidad" className="px-4 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all">
+                        Comunidad
+                    </Link>
                     {canSeeMarketing && (
                         <>
                             <Link href="/marketing" className="px-4 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all">
