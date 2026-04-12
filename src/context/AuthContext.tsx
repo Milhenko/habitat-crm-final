@@ -1,83 +1,123 @@
-"use client";
+'use client'
 
 import { createContext, useContext, useState, useEffect, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
+import { clearLastPage } from "@/components/PageTracker";
 
 interface User {
-    id: string;
-    email: string;
-    name: string;
-    role: string;
-    initials: string;
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  initials: string;
 }
 
 interface AuthContextType {
-    user: User | null;
-    loading: boolean;
-    signOut: () => Promise<void>;
+  user: User | null;
+  loading: boolean;
+  signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-    const [user, setUser] = useState<User | null>(null);
-    const [loading, setLoading] = useState(true);
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        let mounted = true;
+  const checkSession = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (session?.user) {
+      const { data: userData } = await supabase
+        .from('users')
+        .select('id, name, email, role, initials')
+        .eq('id', session.user.id)
+        .single();
 
-        // 1. Primero verificar si ya hay sesión activa
-        const checkSession = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session?.user && mounted) {
-                const { data } = await supabase
-                    .from("users")
-                    .select("*")
-                    .eq("id", session.user.id)
-                    .single();
-                if (data && mounted) {
-                    setUser(data);
-                }
-            }
-            if (mounted) setLoading(false);
-        };
+      if (userData) {
+        setUser(userData);
+      }
+    }
+    setLoading(false);
+  };
 
+  // Auto-logout después de 72 horas de inactividad
+  useEffect(() => {
+    if (!user) return
+
+    const INACTIVITY_LIMIT = 72 * 60 * 60 * 1000 // 72 horas en milisegundos
+    const LAST_ACTIVITY_KEY = 'habitat_last_activity'
+
+    // Actualizar última actividad
+    const updateActivity = () => {
+      localStorage.setItem(LAST_ACTIVITY_KEY, Date.now().toString())
+    }
+
+    // Verificar inactividad
+    const checkInactivity = () => {
+      const lastActivity = localStorage.getItem(LAST_ACTIVITY_KEY)
+      if (!lastActivity) {
+        updateActivity()
+        return
+      }
+
+      const timeSinceLastActivity = Date.now() - parseInt(lastActivity)
+      if (timeSinceLastActivity > INACTIVITY_LIMIT) {
+        signOut()
+      }
+    }
+
+    // Eventos que cuentan como "actividad"
+    const events = ['mousedown', 'keydown', 'scroll', 'touchstart']
+    events.forEach(event => window.addEventListener(event, updateActivity))
+
+    // Verificar inactividad cada 5 minutos
+    const interval = setInterval(checkInactivity, 5 * 60 * 1000)
+    
+    // Verificar al montar
+    checkInactivity()
+
+    return () => {
+      events.forEach(event => window.removeEventListener(event, updateActivity))
+      clearInterval(interval)
+    }
+  }, [user])
+
+  useEffect(() => {
+    checkSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
         checkSession();
-
-        // 2. Luego escuchar cambios futuros
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            if (session?.user && mounted) {
-                const { data } = await supabase
-                    .from("users")
-                    .select("*")
-                    .eq("id", session.user.id)
-                    .single();
-                if (data) setUser(data);
-                else setUser(null);
-            } else {
-                if (mounted) setUser(null);
-            }
-        });
-
-        return () => {
-            mounted = false;
-            subscription?.unsubscribe();
-        };
-    }, []);
-
-    const signOut = async () => {
-        await supabase.auth.signOut();
+      } else {
         setUser(null);
-        window.location.href = "/login";
-    };
+        setLoading(false);
+      }
+    });
 
-    const value = useMemo(() => ({ user, loading, signOut }), [user, loading]);
+    return () => subscription.unsubscribe();
+  }, []);
 
-    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
+  const signOut = async () => {
+    clearLastPage();
+    await supabase.auth.signOut();
+    setUser(null);
+    window.location.href = "/login";
+  };
 
-export const useAuth = () => {
-    const context = useContext(AuthContext);
-    if (!context) throw new Error("useAuth must be used within AuthProvider");
-    return context;
-};
+  const value = useMemo(() => ({ user, loading, signOut }), [user, loading]);
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
+}

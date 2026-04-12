@@ -3,12 +3,14 @@
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Building2 } from "lucide-react";
+import { getLastPage } from "@/components/PageTracker";
 
 export default function Home() {
     const router = useRouter();
 
     useEffect(() => {
-        router.push("/contactos");
+        // Replace (not push) so the splash screen is not in browser history.
+        router.replace(getLastPage());
     }, [router]);
 
     return (
