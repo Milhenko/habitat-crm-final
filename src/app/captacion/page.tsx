@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createBrowserClient } from '@supabase/ssr'
+import { supabase } from '@/lib/supabase'
 
 type EstadoMarketing = 'grabado' | 'editado' | 'publicado' | null
 
@@ -70,11 +70,6 @@ function formatPrice(n: number | null) {
   if (!n) return '—'
   return '$' + n.toLocaleString('es-EC')
 }
-
-const supabase = createBrowserClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
 
 export default function CaptacionPage() {
 
