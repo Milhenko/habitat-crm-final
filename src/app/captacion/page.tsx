@@ -63,6 +63,7 @@ interface Property {
   entrega_llaves: boolean | null
   observaciones: string | null
   fotos: string[] | null
+  fotos_nombres: string[] | null
 }
 
 type FormData = Omit<Property, 'id'>
@@ -83,7 +84,7 @@ const EMPTY_FORM: FormData = {
   comision: null, validez_contrato: null, tipo_operacion: '',
   propietario_nombre: '', propietario_ci: '', propietario_celular: '',
   propietario_email: '', alicuota: null, entrega_llaves: false,
-  observaciones: '', fotos: null,
+  observaciones: '', fotos: null, fotos_nombres: null,
 }
 
 const TIPOS = ['Casa/Villa', 'Departamento', 'Local Comercial', 'Oficina', 'Suite', 'Bodega', 'Terreno', 'Otro']
@@ -93,7 +94,7 @@ const ESTADOS_MARKETING = [
   { value: 'editado',   label: 'Editado',     bg: 'bg-blue-100',   text: 'text-blue-700' },
   { value: 'publicado', label: 'Publicado',   bg: 'bg-green-100',  text: 'text-green-700' },
 ]
-const STEPS = ['Inmueble', 'Económico', 'Características', 'Propietario', 'Marketing']
+const STEPS = ['Inmueble', 'Económico', 'Características', 'Propietario', 'Marketing', 'Fotos']
 
 const ASESORES = [
   { nombre: 'Milenko Surati',       iniciales: 'MS' },
@@ -102,6 +103,24 @@ const ASESORES = [
   { nombre: 'José Morán',           iniciales: 'JM' },
   { nombre: 'Sebastián Jaramillo',  iniciales: 'SJ' },
 ]
+
+const FOTO_NOMBRES = [
+  'Fachada',
+  'Sala',
+  'Cocina',
+  'Dormitorio principal',
+  'Dormitorio 2',
+  'Dormitorio 3',
+  'Baño principal',
+  'Terraza / Balcón',
+  'Área de servicio',
+  'Vista aérea',
+  'Piscina',
+  'Área comunal',
+]
+
+const CLOUDINARY_CLOUD = 'dl64kkfbp'
+const CLOUDINARY_PRESET = 'habitat_properties'
 
 function EstadoBadge({ estado }: { estado: EstadoMarketing }) {
   const e = ESTADOS_MARKETING.find(x => x.value === estado) ?? ESTADOS_MARKETING[0]
@@ -160,6 +179,8 @@ export default function CaptacionPage() {
   const [search, setSearch] = useState('')
   const [filterType, setFilterType] = useState('')
   const [filterEstado, setFilterEstado] = useState('all')
+  const [fotosSubidas, setFotosSubidas] = useState<{ nombre: string; url: string }[]>([])
+  const [uploadingFoto, setUploadingFoto] = useState<string | null>(null)
 
   async function fetchProperties() {
     setLoading(true); setError(null)
@@ -201,12 +222,20 @@ export default function CaptacionPage() {
       asesor_nombre: user?.name || '',
       asesor_iniciales: asesor?.iniciales || user?.name?.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2) || '',
     })
-    setStep(0); setFormError(null); setShowModal(true)
+    setStep(0); setFormError(null); setFotosSubidas([]); setShowModal(true)
   }
 
   function openEdit(p: Property) {
     setEditingId(p.id)
     setForm({ ...p } as FormData)
+    const urls = p.fotos ?? []
+    const noms = p.fotos_nombres ?? []
+    setFotosSubidas(
+      urls.map((url, i) => ({
+        url,
+        nombre: noms[i] ?? FOTO_NOMBRES[i] ?? `Foto ${i + 1}`,
+      }))
+    )
     setStep(0); setFormError(null); setShowModal(true)
   }
 
@@ -237,6 +266,29 @@ export default function CaptacionPage() {
     if (!confirm('¿Eliminar esta captación?')) return
     await supabase.from('properties').delete().eq('id', id)
     fetchProperties()
+  }
+
+  async function handleFotoUpload(nombre: string, file: File) {
+    setUploadingFoto(nombre)
+    const data = new FormData()
+    data.append('file', file)
+    data.append('upload_preset', CLOUDINARY_PRESET)
+    data.append('public_id', `habitat/${form.type || 'propiedad'}/${nombre.toLowerCase().replace(/ /g, '_')}_${Date.now()}`)
+
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`, {
+      method: 'POST',
+      body: data,
+    })
+    const result = await res.json()
+
+    if (result.secure_url) {
+      const nuevas = fotosSubidas.filter(item => item.nombre !== nombre)
+      const actualizadas = [...nuevas, { nombre, url: result.secure_url }]
+      setFotosSubidas(actualizadas)
+      f('fotos', actualizadas.map(item => item.url))
+      f('fotos_nombres', actualizadas.map(item => item.nombre))
+    }
+    setUploadingFoto(null)
   }
 
   const total = properties.length
@@ -563,6 +615,49 @@ export default function CaptacionPage() {
                     <textarea value={form.notas_marketing ?? ''} onChange={e => f('notas_marketing', e.target.value)} placeholder="Notas internas..."
                       className="w-full px-3 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20 text-[#1A1A1A] h-24 resize-none" />
                   </div>
+                </div>
+              )}
+
+              {step === 5 && (
+                <div className="space-y-4">
+                  <p className="text-xs text-[#1A1A1A]/50 mb-4">
+                    Sube las fotos con el nombre correcto. Formatos: JPG, PNG. Máx 10MB por foto.
+                  </p>
+                  <div className="grid grid-cols-1 gap-3">
+                    {FOTO_NOMBRES.map(nombre => {
+                      const subida = fotosSubidas.find(item => item.nombre === nombre)
+                      const uploading = uploadingFoto === nombre
+                      return (
+                        <div key={nombre} className={`flex items-center gap-3 p-3 rounded-xl border ${subida ? 'border-green-200 bg-green-50' : 'border-[#1A1A1A]/10 bg-[#EBEAE6]/30'}`}>
+                          <div className="flex-1">
+                            <p className="text-sm font-bold text-[#1E2D40]">{nombre}</p>
+                            {subida && <p className="text-xs text-green-600 mt-0.5 truncate">✓ Subida correctamente</p>}
+                          </div>
+                          {subida && (
+                            <img src={subida.url} alt={nombre} className="w-14 h-14 object-cover rounded-lg" />
+                          )}
+                          <label className={`cursor-pointer text-xs font-bold px-3 py-2 rounded-lg transition-colors ${uploading ? 'bg-gray-100 text-gray-400' : subida ? 'bg-[#1E2D40]/10 text-[#1E2D40]' : 'bg-[#1E2D40] text-white'}`}>
+                            {uploading ? 'Subiendo...' : subida ? 'Cambiar' : 'Subir foto'}
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              disabled={uploading}
+                              onChange={e => {
+                                const file = e.target.files?.[0]
+                                if (file) handleFotoUpload(nombre, file)
+                              }}
+                            />
+                          </label>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  {fotosSubidas.length > 0 && (
+                    <p className="text-xs text-[#1A1A1A]/50 text-center mt-2">
+                      {fotosSubidas.length} de {FOTO_NOMBRES.length} fotos subidas
+                    </p>
+                  )}
                 </div>
               )}
             </div>
