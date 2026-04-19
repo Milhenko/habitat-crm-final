@@ -71,11 +71,12 @@ function formatPrice(n: number | null) {
   return '$' + n.toLocaleString('es-EC')
 }
 
+const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
+
 export default function CaptacionPage() {
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
 
   const [properties, setProperties] = useState<Property[]>([])
   const [loading, setLoading] = useState(true)
