@@ -410,10 +410,6 @@ export default function CaptacionPage() {
               {step === 0 && (
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label>Código</Label>
-                    <Input value={form.code ?? ''} onChange={v => f('code', v)} placeholder="HBT-001" />
-                  </div>
-                  <div>
                     <Label>Tipo de inmueble *</Label>
                     <Select value={form.type ?? ''} onChange={v => f('type', v)}>
                       <option value="">Seleccionar...</option>
