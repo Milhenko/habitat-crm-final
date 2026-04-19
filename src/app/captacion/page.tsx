@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import GlobalHeader from '@/components/GlobalHeader'
 
 type EstadoMarketing = 'grabado' | 'editado' | 'publicado' | null
 
@@ -20,7 +21,6 @@ interface Property {
   asesor_id: string | null
   asesor_nombre: string | null
   asesor_iniciales: string | null
-  // Nuevos campos
   metros_terreno: number | null
   metros_construccion: number | null
   metros_parqueo: number | null
@@ -67,18 +67,17 @@ const EMPTY_FORM: FormData = {
 
 const TIPOS = ['Casa/Villa', 'Departamento', 'Local Comercial', 'Oficina', 'Suite', 'Bodega', 'Terreno', 'Otro']
 const ESTADOS_MARKETING = [
-  { value: null,        label: 'Sin estado',  color: '#6b7280' },
-  { value: 'grabado',   label: 'Grabado',     color: '#f59e0b' },
-  { value: 'editado',   label: 'Editado',     color: '#3b82f6' },
-  { value: 'publicado', label: 'Publicado',   color: '#10b981' },
+  { value: null,        label: 'Sin estado',  bg: 'bg-gray-100',   text: 'text-gray-600' },
+  { value: 'grabado',   label: 'Grabado',     bg: 'bg-amber-100',  text: 'text-amber-700' },
+  { value: 'editado',   label: 'Editado',     bg: 'bg-blue-100',   text: 'text-blue-700' },
+  { value: 'publicado', label: 'Publicado',   bg: 'bg-green-100',  text: 'text-green-700' },
 ]
-
 const STEPS = ['Inmueble', 'Económico', 'Características', 'Propietario', 'Marketing']
 
-function estadoBadge(estado: EstadoMarketing) {
+function EstadoBadge({ estado }: { estado: EstadoMarketing }) {
   const e = ESTADOS_MARKETING.find(x => x.value === estado) ?? ESTADOS_MARKETING[0]
   return (
-    <span style={{ background: e.color + '22', color: e.color, border: `1px solid ${e.color}55`, borderRadius: 6, padding: '2px 10px', fontSize: 12, fontWeight: 600 }}>
+    <span className={`text-[10px] font-black px-2 py-1 rounded-full ${e.bg} ${e.text}`}>
       {e.label}
     </span>
   )
@@ -89,24 +88,56 @@ function formatPrice(n: number | null) {
   return '$' + n.toLocaleString('es-EC')
 }
 
-const inputStyle: React.CSSProperties = {
-  width: '100%', background: '#0f1117', border: '1px solid #2d3748',
-  borderRadius: 8, padding: '9px 12px', color: '#e2e8f0', fontSize: 14,
-  outline: 'none', boxSizing: 'border-box',
-}
-const td: React.CSSProperties = { padding: '11px 16px', fontSize: 14, verticalAlign: 'middle', whiteSpace: 'nowrap' }
-const btnPrimary: React.CSSProperties = { background: '#6366f1', color: '#fff', border: 'none', borderRadius: 8, padding: '9px 18px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }
-const btnSecondary: React.CSSProperties = { background: '#2d3748', color: '#cbd5e1', border: '1px solid #3d4a5c', borderRadius: 8, padding: '7px 14px', fontSize: 13, cursor: 'pointer' }
-const btnDanger: React.CSSProperties = { background: '#7f1d1d22', color: '#f87171', border: '1px solid #7f1d1d55', borderRadius: 8, padding: '7px 14px', fontSize: 13, cursor: 'pointer' }
-
 function Label({ children }: { children: React.ReactNode }) {
-  return <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#94a3b8', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.4 }}>{children}</label>
+  return (
+    <label className="block text-xs font-bold text-[#1A1A1A]/50 mb-1.5 uppercase tracking-wide">
+      {children}
+    </label>
+  )
+}
+
+function Input({ value, onChange, placeholder, type = 'text' }: {
+  value: string | number
+  onChange: (v: string) => void
+  placeholder?: string
+  type?: string
+}) {
+  return (
+    <input
+      type={type}
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      placeholder={placeholder}
+      className="w-full px-3 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20 text-[#1A1A1A]"
+    />
+  )
+}
+
+function Select({ value, onChange, children }: {
+  value: string | number
+  onChange: (v: string) => void
+  children: React.ReactNode
+}) {
+  return (
+    <select
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      className="w-full px-3 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20 text-[#1A1A1A]"
+    >
+      {children}
+    </select>
+  )
 }
 
 function CheckField({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
   return (
-    <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 14, color: '#cbd5e1', padding: '6px 0' }}>
-      <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} style={{ width: 16, height: 16, accentColor: '#6366f1' }} />
+    <label className="flex items-center gap-2 cursor-pointer text-sm text-[#1A1A1A]/70 py-1">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={e => onChange(e.target.checked)}
+        className="w-4 h-4 accent-[#1E2D40] rounded"
+      />
       {label}
     </label>
   )
@@ -141,7 +172,9 @@ export default function CaptacionPage() {
     if (filterEstado !== 'all' && (p.estado_marketing ?? 'null') !== (filterEstado === 'null' ? 'null' : filterEstado)) return false
     if (search) {
       const q = search.toLowerCase()
-      return (p.code ?? '').toLowerCase().includes(q) || (p.address ?? '').toLowerCase().includes(q) || (p.asesor_nombre ?? '').toLowerCase().includes(q)
+      return (p.code ?? '').toLowerCase().includes(q) ||
+             (p.address ?? '').toLowerCase().includes(q) ||
+             (p.asesor_nombre ?? '').toLowerCase().includes(q)
     }
     return true
   })
@@ -153,25 +186,21 @@ export default function CaptacionPage() {
     setStep(0); setFormError(null); setShowModal(true)
   }
 
+  const f = (key: keyof FormData, value: unknown) => setForm(prev => ({ ...prev, [key]: value }))
+
   async function handleSave() {
     const errores: string[] = []
-
-    if (!form.address?.trim()) errores.push('Dirección')
-    if (!form.type?.trim()) errores.push('Tipo de inmueble')
-    if (!form.tipo_operacion?.trim()) errores.push('Tipo de operación')
-    if (!form.price_initial) errores.push('Precio referencial')
-    if (!form.propietario_nombre?.trim()) errores.push('Nombre del propietario')
+    if (!form.address?.trim())             errores.push('Dirección')
+    if (!form.type?.trim())                errores.push('Tipo de inmueble')
+    if (!form.tipo_operacion?.trim())      errores.push('Tipo de operación')
+    if (!form.price_initial)               errores.push('Precio referencial')
+    if (!form.propietario_nombre?.trim())  errores.push('Nombre del propietario')
     if (!form.propietario_celular?.trim()) errores.push('Celular del propietario')
-    if (!form.asesor_nombre?.trim()) errores.push('Asesor responsable')
-    if (!form.comision) errores.push('Comisión')
+    if (!form.asesor_nombre?.trim())       errores.push('Asesor responsable')
+    if (!form.comision)                    errores.push('Comisión')
+    if (errores.length > 0) { setFormError(`Campos obligatorios: ${errores.join(', ')}`); return }
 
-    if (errores.length > 0) {
-      setFormError(`Campos obligatorios: ${errores.join(', ')}`)
-      return
-    }
-
-    setSaving(true)
-    setFormError(null)
+    setSaving(true); setFormError(null)
     const { error } = editingId
       ? await supabase.from('properties').update(form).eq('id', editingId)
       : await supabase.from('properties').insert(form)
@@ -186,199 +215,277 @@ export default function CaptacionPage() {
     fetchProperties()
   }
 
-  const f = (key: keyof FormData, value: unknown) => setForm(prev => ({ ...prev, [key]: value }))
-
   const total = properties.length
   const publicados = properties.filter(p => p.estado_marketing === 'publicado').length
   const sinEstado = properties.filter(p => !p.estado_marketing).length
 
   return (
-    <div style={{ padding: '28px 32px', fontFamily: 'system-ui, sans-serif', color: '#e2e8f0', minHeight: '100vh', background: '#0f1117' }}>
+    <div className="min-h-screen bg-[#EBEAE6]">
+      <GlobalHeader />
 
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 }}>
-        <div>
-          <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0, color: '#f8fafc' }}>Captaciones</h1>
-          <p style={{ margin: '4px 0 0', color: '#94a3b8', fontSize: 14 }}>Portafolio de propiedades captadas</p>
-        </div>
-        <button onClick={openCreate} style={btnPrimary}>+ Nueva captación</button>
-      </div>
+      <main className="p-6 md:p-10">
+        <div className="max-w-[1400px] mx-auto space-y-6">
 
-      {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 28 }}>
-        {[{ label: 'Total', value: total, color: '#6366f1' }, { label: 'Publicadas', value: publicados, color: '#10b981' }, { label: 'Sin estado', value: sinEstado, color: '#f59e0b' }].map(s => (
-          <div key={s.label} style={{ background: '#1e2433', borderRadius: 12, padding: '18px 22px', border: '1px solid #2d3748' }}>
-            <div style={{ fontSize: 28, fontWeight: 700, color: s.color }}>{s.value}</div>
-            <div style={{ fontSize: 13, color: '#94a3b8', marginTop: 4 }}>{s.label}</div>
+          {/* Header */}
+          <div className="flex items-start justify-between">
+            <div>
+              <h1 className="text-2xl font-black text-[#1E2D40] tracking-tighter">
+                Portafolio de <span className="underline decoration-2 underline-offset-4">Captaciones</span>
+              </h1>
+              <p className="text-xs text-[#1A1A1A]/50 mt-1">{total} propiedades captadas</p>
+            </div>
+            <button
+              onClick={openCreate}
+              className="bg-[#1E2D40] text-white text-sm font-bold px-5 py-2.5 rounded-xl hover:bg-[#1E2D40]/90 transition-colors"
+            >
+              + Nueva captación
+            </button>
           </div>
-        ))}
-      </div>
 
-      {/* Filtros */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
-        <input placeholder="Buscar..." value={search} onChange={e => setSearch(e.target.value)} style={{ ...inputStyle, flex: '1 1 200px' }} />
-        <select value={filterType} onChange={e => setFilterType(e.target.value)} style={inputStyle}>
-          <option value="">Todos los tipos</option>
-          {TIPOS.map(t => <option key={t} value={t}>{t}</option>)}
-        </select>
-        <select value={filterEstado} onChange={e => setFilterEstado(e.target.value)} style={inputStyle}>
-          <option value="all">Todos los estados</option>
-          <option value="null">Sin estado</option>
-          {ESTADOS_MARKETING.filter(e => e.value).map(e => <option key={String(e.value)} value={String(e.value)}>{e.label}</option>)}
-        </select>
-      </div>
+          {/* Stats */}
+          <div className="grid grid-cols-3 gap-4">
+            {[
+              { label: 'Total captaciones', value: total,      color: 'text-[#1E2D40]' },
+              { label: 'Publicadas',         value: publicados, color: 'text-green-600' },
+              { label: 'Sin estado',         value: sinEstado,  color: 'text-amber-600' },
+            ].map(s => (
+              <div key={s.label} className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-[#1A1A1A]/5 p-5">
+                <div className={`text-3xl font-black ${s.color}`}>{s.value}</div>
+                <div className="text-xs text-[#1A1A1A]/50 mt-1">{s.label}</div>
+              </div>
+            ))}
+          </div>
 
-      {/* Tabla */}
-      {loading ? (
-        <div style={{ textAlign: 'center', padding: 60, color: '#64748b' }}>Cargando...</div>
-      ) : error ? (
-        <div style={{ textAlign: 'center', padding: 40, color: '#f87171' }}>Error: {error}</div>
-      ) : filtered.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: 60, color: '#64748b' }}>
-          {properties.length === 0 ? 'No hay captaciones. Crea la primera.' : 'Sin resultados.'}
-        </div>
-      ) : (
-        <div style={{ overflowX: 'auto', borderRadius: 12, border: '1px solid #2d3748' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', background: '#1e2433' }}>
-            <thead>
-              <tr style={{ background: '#161b27', borderBottom: '1px solid #2d3748' }}>
-                {['Código', 'Tipo', 'Operación', 'Zona', 'Precio', 'M² Const.', 'Dorm.', 'Estado', 'Asesor', 'Acciones'].map(h => (
-                  <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: '#64748b', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{h}</th>
+          {/* Filtros */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-[#1A1A1A]/5 p-5">
+            <div className="flex flex-col md:flex-row gap-3">
+              <div className="flex-1 relative">
+                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#1A1A1A]/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Buscar por código, dirección, asesor..."
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20"
+                />
+              </div>
+              <select
+                value={filterType}
+                onChange={e => setFilterType(e.target.value)}
+                className="px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20"
+              >
+                <option value="">Todos los tipos</option>
+                {TIPOS.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+              <select
+                value={filterEstado}
+                onChange={e => setFilterEstado(e.target.value)}
+                className="px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20"
+              >
+                <option value="all">Todos los estados</option>
+                <option value="null">Sin estado</option>
+                {ESTADOS_MARKETING.filter(e => e.value).map(e => (
+                  <option key={String(e.value)} value={String(e.value)}>{e.label}</option>
                 ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((p, i) => (
-                <tr key={p.id} style={{ borderBottom: '1px solid #2d3748', background: i % 2 === 0 ? '#1e2433' : '#1a1f2e' }}>
-                  <td style={td}><span style={{ fontWeight: 600, color: '#a5b4fc' }}>{p.code || '—'}</span></td>
-                  <td style={td}>{p.type || '—'}</td>
-                  <td style={td}>{p.tipo_operacion || '—'}</td>
-                  <td style={td}>{p.zone || '—'}</td>
-                  <td style={{ ...td, fontWeight: 600 }}>{formatPrice(p.price_initial)}</td>
-                  <td style={td}>{p.metros_construccion ? `${p.metros_construccion} m²` : '—'}</td>
-                  <td style={td}>{p.dormitorios ?? '—'}</td>
-                  <td style={td}>{estadoBadge(p.estado_marketing)}</td>
-                  <td style={td}>{p.asesor_nombre || '—'}</td>
-                  <td style={td}>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <button onClick={() => openEdit(p)} style={btnSecondary}>Editar</button>
-                      <button onClick={() => handleDelete(p.id)} style={btnDanger}>Eliminar</button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+              </select>
+            </div>
+          </div>
+
+          {/* Tabla */}
+          {loading ? (
+            <div className="flex items-center justify-center h-64">
+              <p className="text-[#1A1A1A]/50 text-sm">Cargando captaciones...</p>
+            </div>
+          ) : error ? (
+            <div className="flex items-center justify-center h-64">
+              <p className="text-red-500 text-sm">Error: {error}</p>
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="flex items-center justify-center h-64">
+              <p className="text-[#1A1A1A]/40 text-sm">
+                {properties.length === 0 ? 'No hay captaciones. Crea la primera.' : 'Sin resultados para los filtros aplicados.'}
+              </p>
+            </div>
+          ) : (
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-[#1A1A1A]/5 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-[#1A1A1A]/5">
+                      {['Código', 'Tipo', 'Operación', 'Zona', 'Precio', 'M² Const.', 'Dorm.', 'Estado mkt', 'Asesor', 'Acciones'].map(h => (
+                        <th key={h} className="px-4 py-3 text-left text-[10px] font-black text-[#1A1A1A]/40 uppercase tracking-wider whitespace-nowrap">
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((p, i) => (
+                      <tr key={p.id} className={`border-b border-[#1A1A1A]/5 hover:bg-[#1E2D40]/5 transition-colors ${i % 2 === 0 ? '' : 'bg-[#EBEAE6]/30'}`}>
+                        <td className="px-4 py-3 text-sm font-black text-[#1E2D40]">{p.code || '—'}</td>
+                        <td className="px-4 py-3 text-sm text-[#1A1A1A]/70 whitespace-nowrap">{p.type || '—'}</td>
+                        <td className="px-4 py-3 text-sm text-[#1A1A1A]/70 whitespace-nowrap">{p.tipo_operacion || '—'}</td>
+                        <td className="px-4 py-3 text-sm text-[#1A1A1A]/70 whitespace-nowrap">{p.zone || '—'}</td>
+                        <td className="px-4 py-3 text-sm font-bold text-[#1A1A1A] whitespace-nowrap">{formatPrice(p.price_initial)}</td>
+                        <td className="px-4 py-3 text-sm text-[#1A1A1A]/70">{p.metros_construccion ? `${p.metros_construccion} m²` : '—'}</td>
+                        <td className="px-4 py-3 text-sm text-[#1A1A1A]/70">{p.dormitorios ?? '—'}</td>
+                        <td className="px-4 py-3"><EstadoBadge estado={p.estado_marketing} /></td>
+                        <td className="px-4 py-3 text-sm text-[#1A1A1A]/70 whitespace-nowrap">
+                          {p.asesor_nombre ? (
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 rounded-full bg-[#1E2D40]/10 flex items-center justify-center text-[#1E2D40] font-black text-[10px]">
+                                {p.asesor_iniciales || p.asesor_nombre.charAt(0)}
+                              </div>
+                              {p.asesor_nombre}
+                            </div>
+                          ) : '—'}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => openEdit(p)}
+                              className="text-xs font-bold px-3 py-1.5 bg-[#1E2D40]/10 text-[#1E2D40] rounded-lg hover:bg-[#1E2D40]/20 transition-colors"
+                            >
+                              Editar
+                            </button>
+                            <button
+                              onClick={() => handleDelete(p.id)}
+                              className="text-xs font-bold px-3 py-1.5 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-colors"
+                            >
+                              Eliminar
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
-      )}
+      </main>
 
       {/* Modal multi-step */}
       {showModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: '#1e2433', borderRadius: 16, width: '100%', maxWidth: 660, maxHeight: '92vh', overflowY: 'auto', border: '1px solid #2d3748', boxShadow: '0 25px 50px rgba(0,0,0,0.5)' }}>
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto shadow-2xl">
 
             {/* Header modal */}
-            <div style={{ padding: '24px 28px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#f8fafc' }}>
+            <div className="flex items-center justify-between p-6 pb-0">
+              <h2 className="text-lg font-black text-[#1E2D40] tracking-tighter">
                 {editingId ? 'Editar captación' : 'Nueva captación'}
               </h2>
-              <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: 22, cursor: 'pointer' }}>×</button>
+              <button onClick={() => setShowModal(false)} className="text-[#1A1A1A]/40 hover:text-[#1A1A1A] text-2xl leading-none">×</button>
             </div>
 
             {/* Steps */}
-            <div style={{ padding: '20px 28px 0', display: 'flex', gap: 0 }}>
+            <div className="flex px-6 pt-4 gap-0 border-b border-[#1A1A1A]/10">
               {STEPS.map((s, i) => (
-                <button key={s} onClick={() => setStep(i)} style={{
-                  flex: 1, padding: '8px 4px', fontSize: 11, fontWeight: 600,
-                  background: 'none', border: 'none', borderBottom: `2px solid ${step === i ? '#6366f1' : '#2d3748'}`,
-                  color: step === i ? '#a5b4fc' : '#64748b', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: 0.5
-                }}>{i + 1}. {s}</button>
+                <button
+                  key={s}
+                  onClick={() => setStep(i)}
+                  className={`flex-1 pb-3 text-[10px] font-black uppercase tracking-wide border-b-2 transition-colors ${
+                    step === i
+                      ? 'border-[#1E2D40] text-[#1E2D40]'
+                      : 'border-transparent text-[#1A1A1A]/30 hover:text-[#1A1A1A]/60'
+                  }`}
+                >
+                  {i + 1}. {s}
+                </button>
               ))}
             </div>
 
             {formError && (
-              <div style={{ margin: '16px 28px 0', background: '#7f1d1d', color: '#fca5a5', padding: '10px 14px', borderRadius: 8, fontSize: 14 }}>
+              <div className="mx-6 mt-4 bg-red-50 border border-red-100 text-red-600 text-xs font-bold px-4 py-3 rounded-xl">
                 {formError}
               </div>
             )}
 
-            <div style={{ padding: '24px 28px' }}>
+            <div className="p-6">
 
               {/* PASO 1 — Inmueble */}
               {step === 0 && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label>Código</Label>
-                    <input value={form.code ?? ''} onChange={e => f('code', e.target.value)} style={inputStyle} placeholder="HBT-001" />
+                    <Input value={form.code ?? ''} onChange={v => f('code', v)} placeholder="HBT-001" />
                   </div>
                   <div>
-                    <Label>Tipo de inmueble</Label>
-                    <select value={form.type ?? ''} onChange={e => f('type', e.target.value)} style={inputStyle}>
+                    <Label>Tipo de inmueble *</Label>
+                    <Select value={form.type ?? ''} onChange={v => f('type', v)}>
                       <option value="">Seleccionar...</option>
                       {TIPOS.map(t => <option key={t} value={t}>{t}</option>)}
-                    </select>
+                    </Select>
                   </div>
                   <div>
                     <Label>Zona / Sector</Label>
-                    <input value={form.zone ?? ''} onChange={e => f('zone', e.target.value)} style={inputStyle} placeholder="Ej: Samborondón" />
+                    <Input value={form.zone ?? ''} onChange={v => f('zone', v)} placeholder="Ej: Samborondón" />
                   </div>
-                  <div style={{ gridColumn: '1 / -1' }}>
+                  <div className="col-span-2">
                     <Label>Dirección *</Label>
-                    <input value={form.address ?? ''} onChange={e => f('address', e.target.value)} style={inputStyle} placeholder="Dirección completa" />
+                    <Input value={form.address ?? ''} onChange={v => f('address', v)} placeholder="Dirección completa" />
                   </div>
                   <div>
                     <Label>M² Terreno</Label>
-                    <input type="number" value={form.metros_terreno ?? ''} onChange={e => f('metros_terreno', e.target.value ? +e.target.value : null)} style={inputStyle} placeholder="0" />
+                    <Input type="number" value={form.metros_terreno ?? ''} onChange={v => f('metros_terreno', v ? +v : null)} placeholder="0" />
                   </div>
                   <div>
                     <Label>M² Construcción</Label>
-                    <input type="number" value={form.metros_construccion ?? ''} onChange={e => f('metros_construccion', e.target.value ? +e.target.value : null)} style={inputStyle} placeholder="0" />
+                    <Input type="number" value={form.metros_construccion ?? ''} onChange={v => f('metros_construccion', v ? +v : null)} placeholder="0" />
                   </div>
                   <div>
                     <Label>M² Parqueo</Label>
-                    <input type="number" value={form.metros_parqueo ?? ''} onChange={e => f('metros_parqueo', e.target.value ? +e.target.value : null)} style={inputStyle} placeholder="0" />
+                    <Input type="number" value={form.metros_parqueo ?? ''} onChange={v => f('metros_parqueo', v ? +v : null)} placeholder="0" />
                   </div>
-                  <div style={{ gridColumn: '1 / -1' }}>
+                  <div className="col-span-2">
                     <Label>Observaciones</Label>
-                    <textarea value={form.observaciones ?? ''} onChange={e => f('observaciones', e.target.value)} style={{ ...inputStyle, height: 72, resize: 'vertical' }} placeholder="Notas sobre el inmueble..." />
+                    <textarea
+                      value={form.observaciones ?? ''}
+                      onChange={e => f('observaciones', e.target.value)}
+                      placeholder="Notas sobre el inmueble..."
+                      className="w-full px-3 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20 text-[#1A1A1A] h-20 resize-none"
+                    />
                   </div>
                 </div>
               )}
 
               {/* PASO 2 — Económico */}
               {step === 1 && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label>Tipo de operación</Label>
-                    <select value={form.tipo_operacion ?? ''} onChange={e => f('tipo_operacion', e.target.value)} style={inputStyle}>
+                    <Label>Tipo de operación *</Label>
+                    <Select value={form.tipo_operacion ?? ''} onChange={v => f('tipo_operacion', v)}>
                       <option value="">Seleccionar...</option>
                       <option value="Venta">Venta</option>
                       <option value="Alquiler">Alquiler</option>
                       <option value="Venta y Alquiler">Venta y Alquiler</option>
-                    </select>
+                    </Select>
                   </div>
                   <div>
-                    <Label>Precio referencial</Label>
-                    <input type="number" value={form.price_initial ?? ''} onChange={e => f('price_initial', e.target.value ? +e.target.value : null)} style={inputStyle} placeholder="0" />
+                    <Label>Precio referencial *</Label>
+                    <Input type="number" value={form.price_initial ?? ''} onChange={v => f('price_initial', v ? +v : null)} placeholder="0" />
                   </div>
                   <div>
-                    <Label>Comisión (%)</Label>
-                    <input type="number" value={form.comision ?? ''} onChange={e => f('comision', e.target.value ? +e.target.value : null)} style={inputStyle} placeholder="4" />
+                    <Label>Comisión (%) *</Label>
+                    <Input type="number" value={form.comision ?? ''} onChange={v => f('comision', v ? +v : null)} placeholder="4" />
                   </div>
                   <div>
                     <Label>Alícuota mensual ($)</Label>
-                    <input type="number" value={form.alicuota ?? ''} onChange={e => f('alicuota', e.target.value ? +e.target.value : null)} style={inputStyle} placeholder="0" />
+                    <Input type="number" value={form.alicuota ?? ''} onChange={v => f('alicuota', v ? +v : null)} placeholder="0" />
                   </div>
                   <div>
-                    <Label>Validez contrato (meses)</Label>
-                    <select value={form.validez_contrato ?? ''} onChange={e => f('validez_contrato', e.target.value ? +e.target.value : null)} style={inputStyle}>
+                    <Label>Validez contrato</Label>
+                    <Select value={form.validez_contrato ?? ''} onChange={v => f('validez_contrato', v ? +v : null)}>
                       <option value="">Seleccionar...</option>
                       <option value={3}>3 meses</option>
                       <option value={6}>6 meses</option>
                       <option value={12}>12 meses</option>
-                    </select>
+                    </Select>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10, justifyContent: 'flex-end' }}>
+                  <div className="flex flex-col gap-2 justify-end">
                     <CheckField label="Exclusividad" checked={!!form.exclusividad} onChange={v => f('exclusividad', v)} />
                     <CheckField label="Amoblado" checked={!!form.amoblado} onChange={v => f('amoblado', v)} />
                     <CheckField label="Entrega de llaves" checked={!!form.entrega_llaves} onChange={v => f('entrega_llaves', v)} />
@@ -388,30 +495,30 @@ export default function CaptacionPage() {
 
               {/* PASO 3 — Características */}
               {step === 2 && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label>Dormitorios</Label>
-                    <input type="number" value={form.dormitorios ?? ''} onChange={e => f('dormitorios', e.target.value ? +e.target.value : null)} style={inputStyle} placeholder="0" />
+                    <Input type="number" value={form.dormitorios ?? ''} onChange={v => f('dormitorios', v ? +v : null)} placeholder="0" />
                   </div>
                   <div>
                     <Label>Baños completos</Label>
-                    <input type="number" value={form.banos_completos ?? ''} onChange={e => f('banos_completos', e.target.value ? +e.target.value : null)} style={inputStyle} placeholder="0" />
+                    <Input type="number" value={form.banos_completos ?? ''} onChange={v => f('banos_completos', v ? +v : null)} placeholder="0" />
                   </div>
                   <div>
                     <Label>Medio baño</Label>
-                    <input type="number" value={form.medio_bano ?? ''} onChange={e => f('medio_bano', e.target.value ? +e.target.value : null)} style={inputStyle} placeholder="0" />
+                    <Input type="number" value={form.medio_bano ?? ''} onChange={v => f('medio_bano', v ? +v : null)} placeholder="0" />
                   </div>
                   <div>
                     <Label>Parqueos</Label>
-                    <input type="number" value={form.parqueos ?? ''} onChange={e => f('parqueos', e.target.value ? +e.target.value : null)} style={inputStyle} placeholder="0" />
+                    <Input type="number" value={form.parqueos ?? ''} onChange={v => f('parqueos', v ? +v : null)} placeholder="0" />
                   </div>
-                  <div style={{ gridColumn: '1 / -1' }}>
+                  <div className="col-span-2">
                     <Label>Amenidades</Label>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 4, marginTop: 8 }}>
+                    <div className="grid grid-cols-3 gap-1 mt-2">
                       <CheckField label="Piscina" checked={!!form.piscina} onChange={v => f('piscina', v)} />
                       <CheckField label="Gimnasio" checked={!!form.gimnasio} onChange={v => f('gimnasio', v)} />
                       <CheckField label="BBQ" checked={!!form.bbq} onChange={v => f('bbq', v)} />
-                      <CheckField label="Salón de eventos" checked={!!form.salon_eventos} onChange={v => f('salon_eventos', v)} />
+                      <CheckField label="Salón eventos" checked={!!form.salon_eventos} onChange={v => f('salon_eventos', v)} />
                       <CheckField label="Terraza" checked={!!form.terraza} onChange={v => f('terraza', v)} />
                       <CheckField label="Balcón" checked={!!form.balcon} onChange={v => f('balcon', v)} />
                     </div>
@@ -421,75 +528,110 @@ export default function CaptacionPage() {
 
               {/* PASO 4 — Propietario */}
               {step === 3 && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                  <div style={{ gridColumn: '1 / -1' }}>
-                    <Label>Nombre del propietario</Label>
-                    <input value={form.propietario_nombre ?? ''} onChange={e => f('propietario_nombre', e.target.value)} style={inputStyle} placeholder="Nombre completo" />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2">
+                    <Label>Nombre del propietario *</Label>
+                    <Input value={form.propietario_nombre ?? ''} onChange={v => f('propietario_nombre', v)} placeholder="Nombre completo" />
                   </div>
                   <div>
                     <Label>C.I. / RUC</Label>
-                    <input value={form.propietario_ci ?? ''} onChange={e => f('propietario_ci', e.target.value)} style={inputStyle} placeholder="0000000000" />
+                    <Input value={form.propietario_ci ?? ''} onChange={v => f('propietario_ci', v)} placeholder="0000000000" />
                   </div>
                   <div>
-                    <Label>Celular</Label>
-                    <input value={form.propietario_celular ?? ''} onChange={e => f('propietario_celular', e.target.value)} style={inputStyle} placeholder="09XXXXXXXX" />
+                    <Label>Celular *</Label>
+                    <Input value={form.propietario_celular ?? ''} onChange={v => f('propietario_celular', v)} placeholder="09XXXXXXXX" />
                   </div>
-                  <div style={{ gridColumn: '1 / -1' }}>
+                  <div className="col-span-2">
                     <Label>Email</Label>
-                    <input type="email" value={form.propietario_email ?? ''} onChange={e => f('propietario_email', e.target.value)} style={inputStyle} placeholder="correo@ejemplo.com" />
+                    <Input type="email" value={form.propietario_email ?? ''} onChange={v => f('propietario_email', v)} placeholder="correo@ejemplo.com" />
                   </div>
                   <div>
-                    <Label>Asesor responsable</Label>
-                    <input value={form.asesor_nombre ?? ''} onChange={e => f('asesor_nombre', e.target.value)} style={inputStyle} placeholder="Nombre del asesor" />
+                    <Label>Asesor responsable *</Label>
+                    <Input value={form.asesor_nombre ?? ''} onChange={v => f('asesor_nombre', v)} placeholder="Nombre del asesor" />
                   </div>
                   <div>
                     <Label>Iniciales asesor</Label>
-                    <input value={form.asesor_iniciales ?? ''} onChange={e => f('asesor_iniciales', e.target.value.toUpperCase())} style={inputStyle} placeholder="MS" maxLength={3} />
+                    <input
+                      value={form.asesor_iniciales ?? ''}
+                      onChange={e => f('asesor_iniciales', e.target.value.toUpperCase())}
+                      placeholder="MS"
+                      maxLength={3}
+                      className="w-full px-3 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20 text-[#1A1A1A]"
+                    />
                   </div>
                 </div>
               )}
 
               {/* PASO 5 — Marketing */}
               {step === 4 && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                  <div style={{ gridColumn: '1 / -1' }}>
+                <div className="grid grid-cols-1 gap-4">
+                  <div>
                     <Label>Estado marketing</Label>
-                    <select value={form.estado_marketing ?? ''} onChange={e => f('estado_marketing', (e.target.value || null) as EstadoMarketing)} style={inputStyle}>
+                    <Select value={form.estado_marketing ?? ''} onChange={v => f('estado_marketing', (v || null) as EstadoMarketing)}>
                       <option value="">Sin estado</option>
-                      {ESTADOS_MARKETING.filter(e => e.value).map(e => <option key={String(e.value)} value={String(e.value!)}>{e.label}</option>)}
-                    </select>
+                      {ESTADOS_MARKETING.filter(e => e.value).map(e => (
+                        <option key={String(e.value)} value={String(e.value)}>{e.label}</option>
+                      ))}
+                    </Select>
                   </div>
-                  <div style={{ gridColumn: '1 / -1' }}>
+                  <div>
                     <Label>Estado de producción</Label>
-                    <div style={{ display: 'flex', gap: 24, marginTop: 8 }}>
+                    <div className="flex gap-6 mt-1">
                       <CheckField label="Grabado" checked={!!form.grabado} onChange={v => f('grabado', v)} />
                       <CheckField label="Editado" checked={!!form.editado} onChange={v => f('editado', v)} />
                       <CheckField label="Publicado" checked={!!form.publicado} onChange={v => f('publicado', v)} />
                     </div>
                   </div>
-                  <div style={{ gridColumn: '1 / -1' }}>
+                  <div>
                     <Label>Notas de marketing</Label>
-                    <textarea value={form.notas_marketing ?? ''} onChange={e => f('notas_marketing', e.target.value)} style={{ ...inputStyle, height: 100, resize: 'vertical' }} placeholder="Notas internas del proceso de marketing..." />
+                    <textarea
+                      value={form.notas_marketing ?? ''}
+                      onChange={e => f('notas_marketing', e.target.value)}
+                      placeholder="Notas internas del proceso de marketing..."
+                      className="w-full px-3 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20 text-[#1A1A1A] h-24 resize-none"
+                    />
                   </div>
                 </div>
               )}
-
             </div>
 
             {/* Footer modal */}
-            <div style={{ padding: '0 28px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', gap: 8 }}>
-                {step > 0 && <button onClick={() => setStep(s => s - 1)} style={btnSecondary}>← Anterior</button>}
+            <div className="flex items-center justify-between px-6 pb-6">
+              <div>
+                {step > 0 && (
+                  <button
+                    onClick={() => setStep(s => s - 1)}
+                    className="text-sm font-bold px-4 py-2 bg-[#EBEAE6] text-[#1A1A1A]/70 rounded-xl hover:bg-[#EBEAE6]/80 transition-colors"
+                  >
+                    ← Anterior
+                  </button>
+                )}
               </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button onClick={() => setShowModal(false)} style={btnSecondary}>Cancelar</button>
-                {step < STEPS.length - 1
-                  ? <button onClick={() => setStep(s => s + 1)} style={btnPrimary}>Siguiente →</button>
-                  : <button onClick={handleSave} disabled={saving} style={btnPrimary}>{saving ? 'Guardando...' : editingId ? 'Actualizar' : 'Crear captación'}</button>
-                }
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="text-sm font-bold px-4 py-2 bg-[#EBEAE6] text-[#1A1A1A]/70 rounded-xl hover:bg-[#EBEAE6]/80 transition-colors"
+                >
+                  Cancelar
+                </button>
+                {step < STEPS.length - 1 ? (
+                  <button
+                    onClick={() => setStep(s => s + 1)}
+                    className="text-sm font-bold px-4 py-2 bg-[#1E2D40] text-white rounded-xl hover:bg-[#1E2D40]/90 transition-colors"
+                  >
+                    Siguiente →
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleSave}
+                    disabled={saving}
+                    className="text-sm font-bold px-4 py-2 bg-[#1E2D40] text-white rounded-xl hover:bg-[#1E2D40]/90 transition-colors disabled:opacity-50"
+                  >
+                    {saving ? 'Guardando...' : editingId ? 'Actualizar' : 'Crear captación'}
+                  </button>
+                )}
               </div>
             </div>
-
           </div>
         </div>
       )}
