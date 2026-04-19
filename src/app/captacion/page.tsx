@@ -64,6 +64,7 @@ interface Property {
   observaciones: string | null
   fotos: string[] | null
   fotos_nombres: string[] | null
+  planos: string[] | null
 }
 
 type FormData = Omit<Property, 'id'>
@@ -84,7 +85,7 @@ const EMPTY_FORM: FormData = {
   comision: null, validez_contrato: null, tipo_operacion: '',
   propietario_nombre: '', propietario_ci: '', propietario_celular: '',
   propietario_email: '', alicuota: null, entrega_llaves: false,
-  observaciones: '', fotos: null, fotos_nombres: null,
+  observaciones: '', fotos: null, fotos_nombres: null, planos: null,
 }
 
 const TIPOS = ['Casa/Villa', 'Departamento', 'Local Comercial', 'Oficina', 'Suite', 'Bodega', 'Terreno', 'Otro']
@@ -117,6 +118,14 @@ const FOTO_NOMBRES = [
   'Vista aérea',
   'Piscina',
   'Área comunal',
+]
+
+const PLANO_NOMBRES = [
+  'Plano 1',
+  'Plano 2',
+  'Plano 3',
+  'Plano 4',
+  'Plano 5',
 ]
 
 const CLOUDINARY_CLOUD = 'dl64kkfbp'
@@ -181,6 +190,8 @@ export default function CaptacionPage() {
   const [filterEstado, setFilterEstado] = useState('all')
   const [fotosSubidas, setFotosSubidas] = useState<{ nombre: string; url: string }[]>([])
   const [uploadingFoto, setUploadingFoto] = useState<string | null>(null)
+  const [planosSubidos, setPlanosSubidos] = useState<{ nombre: string; url: string }[]>([])
+  const [uploadingPlano, setUploadingPlano] = useState<string | null>(null)
 
   async function fetchProperties() {
     setLoading(true); setError(null)
@@ -222,7 +233,7 @@ export default function CaptacionPage() {
       asesor_nombre: user?.name || '',
       asesor_iniciales: asesor?.iniciales || user?.name?.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2) || '',
     })
-    setStep(0); setFormError(null); setFotosSubidas([]); setShowModal(true)
+    setStep(0); setFormError(null); setFotosSubidas([]); setPlanosSubidos([]); setShowModal(true)
   }
 
   function openEdit(p: Property) {
@@ -234,6 +245,13 @@ export default function CaptacionPage() {
       urls.map((url, i) => ({
         url,
         nombre: noms[i] ?? FOTO_NOMBRES[i] ?? `Foto ${i + 1}`,
+      }))
+    )
+    const planoUrls = p.planos ?? []
+    setPlanosSubidos(
+      planoUrls.map((url, i) => ({
+        url,
+        nombre: PLANO_NOMBRES[i] ?? `Plano ${i + 1}`,
       }))
     )
     setStep(0); setFormError(null); setShowModal(true)
@@ -289,6 +307,23 @@ export default function CaptacionPage() {
       f('fotos_nombres', actualizadas.map(item => item.nombre))
     }
     setUploadingFoto(null)
+  }
+
+  async function handlePlanoUpload(nombre: string, file: File) {
+    setUploadingPlano(nombre)
+    const data = new FormData()
+    data.append('file', file)
+    data.append('upload_preset', CLOUDINARY_PRESET)
+    data.append('public_id', `habitat/planos/${nombre.toLowerCase().replace(/ /g, '_')}_${Date.now()}`)
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`, { method: 'POST', body: data })
+    const result = await res.json()
+    if (result.secure_url) {
+      const nuevos = planosSubidos.filter(item => item.nombre !== nombre)
+      const actualizados = [...nuevos, { nombre, url: result.secure_url }]
+      setPlanosSubidos(actualizados)
+      f('planos', actualizados.map(item => item.url))
+    }
+    setUploadingPlano(null)
   }
 
   const total = properties.length
@@ -658,6 +693,31 @@ export default function CaptacionPage() {
                       {fotosSubidas.length} de {FOTO_NOMBRES.length} fotos subidas
                     </p>
                   )}
+
+                  <div className="mt-6 pt-6 border-t border-[#1A1A1A]/10">
+                    <p className="text-xs font-black text-[#1E2D40] uppercase tracking-wider mb-3">Planos (opcional)</p>
+                    <p className="text-xs text-[#1A1A1A]/50 mb-4">Puedes subir hasta 5 planos del inmueble.</p>
+                    <div className="grid grid-cols-1 gap-3">
+                      {PLANO_NOMBRES.map(nombre => {
+                        const subido = planosSubidos.find(item => item.nombre === nombre)
+                        const uploading = uploadingPlano === nombre
+                        return (
+                          <div key={nombre} className={`flex items-center gap-3 p-3 rounded-xl border ${subido ? 'border-blue-200 bg-blue-50' : 'border-[#1A1A1A]/10 bg-[#EBEAE6]/30'}`}>
+                            <div className="flex-1">
+                              <p className="text-sm font-bold text-[#1E2D40]">{nombre}</p>
+                              {subido && <p className="text-xs text-blue-600 mt-0.5">✓ Subido correctamente</p>}
+                            </div>
+                            {subido && <img src={subido.url} alt={nombre} className="w-14 h-14 object-cover rounded-lg" />}
+                            <label className={`cursor-pointer text-xs font-bold px-3 py-2 rounded-lg transition-colors ${uploading ? 'bg-gray-100 text-gray-400' : subido ? 'bg-blue-100 text-blue-700' : 'bg-[#1E2D40] text-white'}`}>
+                              {uploading ? 'Subiendo...' : subido ? 'Cambiar' : 'Subir plano'}
+                              <input type="file" accept="image/*,.pdf" className="hidden" disabled={uploading} onChange={e => { const file = e.target.files?.[0]; if (file) handlePlanoUpload(nombre, file) }} />
+                            </label>
+                          </div>
+                        )
+                      })}
+                    </div>
+                    {planosSubidos.length > 0 && <p className="text-xs text-[#1A1A1A]/50 text-center mt-2">{planosSubidos.length} de 5 planos subidos</p>}
+                  </div>
                 </div>
               )}
             </div>
