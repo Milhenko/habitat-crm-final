@@ -154,8 +154,24 @@ export default function CaptacionPage() {
   }
 
   async function handleSave() {
-    if (!form.address?.trim()) { setFormError('La dirección es obligatoria.'); setStep(0); return }
-    setSaving(true); setFormError(null)
+    const errores: string[] = []
+
+    if (!form.address?.trim()) errores.push('Dirección')
+    if (!form.type?.trim()) errores.push('Tipo de inmueble')
+    if (!form.tipo_operacion?.trim()) errores.push('Tipo de operación')
+    if (!form.price_initial) errores.push('Precio referencial')
+    if (!form.propietario_nombre?.trim()) errores.push('Nombre del propietario')
+    if (!form.propietario_celular?.trim()) errores.push('Celular del propietario')
+    if (!form.asesor_nombre?.trim()) errores.push('Asesor responsable')
+    if (!form.comision) errores.push('Comisión')
+
+    if (errores.length > 0) {
+      setFormError(`Campos obligatorios: ${errores.join(', ')}`)
+      return
+    }
+
+    setSaving(true)
+    setFormError(null)
     const { error } = editingId
       ? await supabase.from('properties').update(form).eq('id', editingId)
       : await supabase.from('properties').insert(form)
