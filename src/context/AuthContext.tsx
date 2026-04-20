@@ -30,7 +30,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (session?.user) {
       const { data: userData } = await supabase
         .from('users')
-        .select('id, name, email, role, initials')
+        .select('id, name, email, role, initials, avatar_url')
         .eq('id', session.user.id)
         .single();
 
