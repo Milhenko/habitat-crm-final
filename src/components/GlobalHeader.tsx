@@ -1,6 +1,6 @@
 'use client'
 
-import Link from 'next/link'
+import Link from 'next/link'|
 import { useAuth } from '@/context/AuthContext'
 import { UserCircle2, LogOut, ChevronDown } from 'lucide-react'
 import { useState } from 'react'
@@ -57,14 +57,15 @@ export default function GlobalHeader() {
                     <button
                         onClick={() => setIsMenuOpen(!isMenuOpen)}
                         className="flex items-center gap-3 hover:bg-white/5 rounded-lg px-3 py-2 transition-all"
-                    >
-                        <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white text-xs font-bold">
-                            {loading ? (
-                                <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                            ) : (
-                                user?.initials || "?"
-                            )}
-                        </div>
+                    ><div className="w-8 h-8 rounded-full overflow-hidden bg-white/10 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+    {loading ? (
+        <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+    ) : user?.avatar_url ? (
+        <img src={user.avatar_url} alt={user.name} className="w-full h-full object-cover object-top" />
+    ) : (
+        user?.initials || "?"
+    )}
+</div>
                         <div className="hidden md:block text-left">
                             <p className="text-white text-xs font-bold leading-none">
                                 {loading ? "Cargando..." : (user?.name || "Invitado")}
