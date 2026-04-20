@@ -65,6 +65,14 @@ interface Property {
   fotos: string[] | null
   fotos_nombres: string[] | null
   planos: string[] | null
+  reserva: number | null
+  promesa_porcentaje: number | null
+  promesa_valor: number | null
+  financiamiento_porcentaje: number | null
+  financiamiento_valor: number | null
+  financiamiento_meses: number | null
+  compraventa_porcentaje: number | null
+  compraventa_valor: number | null
 }
 
 type FormData = Omit<Property, 'id'>
@@ -86,6 +94,14 @@ const EMPTY_FORM: FormData = {
   propietario_nombre: '', propietario_ci: '', propietario_celular: '',
   propietario_email: '', alicuota: null, entrega_llaves: false,
   observaciones: '', fotos: null, fotos_nombres: null, planos: null,
+  reserva: null,
+  promesa_porcentaje: null,
+  promesa_valor: null,
+  financiamiento_porcentaje: null,
+  financiamiento_valor: null,
+  financiamiento_meses: null,
+  compraventa_porcentaje: null,
+  compraventa_valor: null,
 }
 
 const TIPOS = ['Casa/Villa', 'Departamento', 'Local Comercial', 'Oficina', 'Suite', 'Bodega', 'Terreno', 'Otro']
@@ -264,7 +280,7 @@ export default function CaptacionPage() {
     if (!form.address?.trim())             errores.push('Dirección')
     if (!form.type?.trim())                errores.push('Tipo de inmueble')
     if (!form.tipo_operacion?.trim())      errores.push('Tipo de operación')
-    if (!form.price_initial)               errores.push('Precio referencial')
+    if (!form.price_initial)               errores.push('Precio total')
     if (!form.propietario_nombre?.trim())  errores.push('Nombre del propietario')
     if (!form.propietario_celular?.trim()) errores.push('Celular del propietario')
     if (!form.asesor_nombre?.trim())       errores.push('Asesor responsable')
@@ -515,8 +531,16 @@ export default function CaptacionPage() {
                     </Select>
                   </div>
                   <div>
-                    <Label>Precio referencial *</Label>
-                    <Input type="number" value={form.price_initial ?? ''} onChange={v => f('price_initial', v ? +v : null)} placeholder="0" />
+                    <Label>Precio total *</Label>
+                    <input type="number" value={form.price_initial ?? ''} onChange={e => {
+                      const precio = e.target.value ? +e.target.value : null
+                      f('price_initial', precio)
+                      if (precio) {
+                        if (form.promesa_porcentaje) f('promesa_valor', +(precio * form.promesa_porcentaje / 100).toFixed(2))
+                        if (form.financiamiento_porcentaje) f('financiamiento_valor', +(precio * form.financiamiento_porcentaje / 100).toFixed(2))
+                        if (form.compraventa_porcentaje) f('compraventa_valor', +(precio * form.compraventa_porcentaje / 100).toFixed(2))
+                      }
+                    }} className="w-full px-3 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20 text-[#1A1A1A]" placeholder="0" />
                   </div>
                   <div>
                     <Label>Comisión (%) *</Label>
@@ -539,6 +563,95 @@ export default function CaptacionPage() {
                     <CheckField label="Exclusividad" checked={!!form.exclusividad} onChange={v => f('exclusividad', v)} />
                     <CheckField label="Amoblado" checked={!!form.amoblado} onChange={v => f('amoblado', v)} />
                     <CheckField label="Entrega de llaves" checked={!!form.entrega_llaves} onChange={v => f('entrega_llaves', v)} />
+                  </div>
+
+                  {/* SECCIÓN FINANCIERA */}
+                  <div className="col-span-2 pt-4 border-t border-[#1A1A1A]/10">
+                    <p className="text-xs font-black text-[#1E2D40] uppercase tracking-wider mb-4">Estructura de pago</p>
+                    <div className="space-y-4">
+
+                      {/* Reserva */}
+                      <div className="bg-[#EBEAE6]/50 rounded-xl p-4">
+                        <p className="text-xs font-bold text-[#1A1A1A]/60 uppercase tracking-wide mb-3">Reserva</p>
+                        <div className="grid grid-cols-1 gap-3">
+                          <div>
+                            <Label>Valor de reserva ($)</Label>
+                            <Input type="number" value={form.reserva ?? ''} onChange={v => f('reserva', v ? +v : null)} placeholder="2000" />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Promesa de compraventa */}
+                      <div className="bg-[#EBEAE6]/50 rounded-xl p-4">
+                        <p className="text-xs font-bold text-[#1A1A1A]/60 uppercase tracking-wide mb-3">Promesa de compraventa</p>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <Label>Porcentaje (%)</Label>
+                            <input type="number" value={form.promesa_porcentaje ?? ''} onChange={e => {
+                              const pct = e.target.value ? +e.target.value : null
+                              f('promesa_porcentaje', pct)
+                              if (pct && form.price_initial) f('promesa_valor', +(form.price_initial * pct / 100).toFixed(2))
+                            }} className="w-full px-3 py-2.5 bg-white border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20 text-[#1A1A1A]" placeholder="10" />
+                          </div>
+                          <div>
+                            <Label>Valor ($) — automático</Label>
+                            <div className="w-full px-3 py-2.5 bg-white/50 border border-[#1A1A1A]/10 rounded-xl text-sm text-[#1E2D40] font-bold">
+                              {form.promesa_valor ? `$${form.promesa_valor.toLocaleString('es-EC')}` : '—'}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Financiamiento */}
+                      <div className="bg-[#EBEAE6]/50 rounded-xl p-4">
+                        <p className="text-xs font-bold text-[#1A1A1A]/60 uppercase tracking-wide mb-3">Financiamiento</p>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <Label>Porcentaje (%)</Label>
+                            <input type="number" value={form.financiamiento_porcentaje ?? ''} onChange={e => {
+                              const pct = e.target.value ? +e.target.value : null
+                              f('financiamiento_porcentaje', pct)
+                              if (pct && form.price_initial) f('financiamiento_valor', +(form.price_initial * pct / 100).toFixed(2))
+                            }} className="w-full px-3 py-2.5 bg-white border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20 text-[#1A1A1A]" placeholder="20" />
+                          </div>
+                          <div>
+                            <Label>Valor ($) — automático</Label>
+                            <div className="w-full px-3 py-2.5 bg-white/50 border border-[#1A1A1A]/10 rounded-xl text-sm text-[#1E2D40] font-bold">
+                              {form.financiamiento_valor ? `$${form.financiamiento_valor.toLocaleString('es-EC')}` : '—'}
+                            </div>
+                          </div>
+                          <div className="col-span-2">
+                            <Label>Plazo (meses) — mín. 1, máx. 48</Label>
+                            <input type="number" min={1} max={48} value={form.financiamiento_meses ?? ''} onChange={e => {
+                              const val = Math.min(48, Math.max(1, +e.target.value))
+                              f('financiamiento_meses', e.target.value ? val : null)
+                            }} className="w-full px-3 py-2.5 bg-white border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20 text-[#1A1A1A]" placeholder="12" />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Compraventa */}
+                      <div className="bg-[#EBEAE6]/50 rounded-xl p-4">
+                        <p className="text-xs font-bold text-[#1A1A1A]/60 uppercase tracking-wide mb-3">Compraventa</p>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <Label>Porcentaje (%)</Label>
+                            <input type="number" value={form.compraventa_porcentaje ?? ''} onChange={e => {
+                              const pct = e.target.value ? +e.target.value : null
+                              f('compraventa_porcentaje', pct)
+                              if (pct && form.price_initial) f('compraventa_valor', +(form.price_initial * pct / 100).toFixed(2))
+                            }} className="w-full px-3 py-2.5 bg-white border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20 text-[#1A1A1A]" placeholder="70" />
+                          </div>
+                          <div>
+                            <Label>Valor ($) — automático</Label>
+                            <div className="w-full px-3 py-2.5 bg-white/50 border border-[#1A1A1A]/10 rounded-xl text-sm text-[#1E2D40] font-bold">
+                              {form.compraventa_valor ? `$${form.compraventa_valor.toLocaleString('es-EC')}` : '—'}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                    </div>
                   </div>
                 </div>
               )}
