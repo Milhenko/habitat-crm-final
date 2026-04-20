@@ -13,6 +13,7 @@ interface Property {
   type: string | null
   zone: string | null
   address: string | null
+  slug: string | null
   price_initial: number | null
   estado_marketing: EstadoMarketing
   grabado: boolean | null
@@ -78,7 +79,7 @@ interface Property {
 type FormData = Omit<Property, 'id'>
 
 const EMPTY_FORM: FormData = {
-  code: '', type: '', zone: '', address: '', price_initial: null,
+  code: '', type: '', zone: '', address: '', slug: '', price_initial: null,
   estado_marketing: null, grabado: false, editado: false, publicado: false,
   notas_marketing: '', asesor_id: null, asesor_nombre: '', asesor_iniciales: '',
   metros_terreno: null, metros_construccion: null, metros_parqueo: null,
@@ -190,6 +191,16 @@ function CheckField({ label, checked, onChange }: { label: string; checked: bool
   )
 }
 
+function generarSlug(zone: string, type: string, address: string): string {
+  return `${zone} ${type} ${address}`
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .slice(0, 50)
+}
+
 export default function CaptacionPage() {
   const { user } = useAuth()
   const [properties, setProperties] = useState<Property[]>([])
@@ -230,6 +241,13 @@ export default function CaptacionPage() {
       }))
     }
   }, [user, showModal])
+
+  useEffect(() => {
+    if (!editingId && (form.zone || form.type || form.address)) {
+      const slug = generarSlug(form.zone ?? '', form.type ?? '', form.address ?? '')
+      setForm(prev => ({ ...prev, slug }))
+    }
+  }, [form.zone, form.type, form.address])
 
   const filtered = properties.filter(p => {
     if (filterType && p.type !== filterType) return false
@@ -498,6 +516,19 @@ export default function CaptacionPage() {
                   <div className="col-span-2">
                     <Label>Dirección *</Label>
                     <Input value={form.address ?? ''} onChange={v => f('address', v)} placeholder="Dirección completa" />
+                  </div>
+                  <div className="col-span-2">
+                    <Label>URL de la propiedad</Label>
+                    <div className="flex items-center gap-2 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl overflow-hidden">
+                      <span className="text-xs text-[#1A1A1A]/40 pl-3 whitespace-nowrap">habitatbienesraicesec.com/propiedades/</span>
+                      <input
+                        value={form.slug ?? ''}
+                        onChange={e => f('slug', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                        className="flex-1 px-2 py-2.5 bg-transparent text-sm focus:outline-none text-[#1E2D40] font-mono"
+                        placeholder="se genera automáticamente"
+                      />
+                    </div>
+                    <p className="text-xs text-[#1A1A1A]/30 mt-1">Puedes editarlo manualmente si lo necesitas</p>
                   </div>
                   <div>
                     <Label>M² Terreno</Label>
