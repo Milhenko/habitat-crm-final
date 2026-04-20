@@ -1,6 +1,6 @@
 'use client'
 
-import Link from 'next/link'|
+import Link from 'next/link'
 import { useAuth } from '@/context/AuthContext'
 import { UserCircle2, LogOut, ChevronDown } from 'lucide-react'
 import { useState } from 'react'
@@ -14,7 +14,6 @@ export default function GlobalHeader() {
     return (
         <nav className="bg-[#1E2D40] shadow-lg sticky top-0 z-50">
             <div className="max-w-[1600px] mx-auto px-6 py-4 flex items-center justify-between">
-                {/* Logo */}
                 <Link href="/contactos" className="flex items-center">
                     <img
                         src="/images/logo.png"
@@ -23,7 +22,6 @@ export default function GlobalHeader() {
                     />
                 </Link>
 
-                {/* Navigation Links */}
                 <div className="flex items-center gap-1">
                     <Link href="/contactos" className="px-4 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-all">
                         Contactos
@@ -52,20 +50,20 @@ export default function GlobalHeader() {
                     )}
                 </div>
 
-                {/* User Profile */}
                 <div className="relative">
                     <button
                         onClick={() => setIsMenuOpen(!isMenuOpen)}
                         className="flex items-center gap-3 hover:bg-white/5 rounded-lg px-3 py-2 transition-all"
-                    ><div className="w-8 h-8 rounded-full overflow-hidden bg-white/10 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-    {loading ? (
-        <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-    ) : user?.avatar_url ? (
-        <img src={user.avatar_url} alt={user.name} className="w-full h-full object-cover object-top" />
-    ) : (
-        user?.initials || "?"
-    )}
-</div>
+                    >
+                        <div className="w-8 h-8 rounded-full overflow-hidden bg-white/10 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                            {loading ? (
+                                <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            ) : user?.avatar_url ? (
+                                <img src={user.avatar_url} alt={user.name} className="w-full h-full object-cover object-top" />
+                            ) : (
+                                user?.initials || "?"
+                            )}
+                        </div>
                         <div className="hidden md:block text-left">
                             <p className="text-white text-xs font-bold leading-none">
                                 {loading ? "Cargando..." : (user?.name || "Invitado")}
