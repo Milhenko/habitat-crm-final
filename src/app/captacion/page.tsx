@@ -215,6 +215,7 @@ export default function CaptacionPage() {
   const [search, setSearch] = useState('')
   const [filterType, setFilterType] = useState('')
   const [filterEstado, setFilterEstado] = useState('all')
+  const [filterAsesor, setFilterAsesor] = useState('')
   const [fotosSubidas, setFotosSubidas] = useState<{ nombre: string; url: string }[]>([])
   const [uploadingFoto, setUploadingFoto] = useState<string | null>(null)
   const [planosSubidos, setPlanosSubidos] = useState<{ nombre: string; url: string }[]>([])
@@ -251,6 +252,7 @@ export default function CaptacionPage() {
 
   const filtered = properties.filter(p => {
     if (filterType && p.type !== filterType) return false
+    if (filterAsesor && p.asesor_nombre !== filterAsesor) return false
     if (filterEstado !== 'all' && (p.estado_marketing ?? 'null') !== (filterEstado === 'null' ? 'null' : filterEstado)) return false
     if (search) {
       const q = search.toLowerCase()
@@ -360,9 +362,9 @@ export default function CaptacionPage() {
     setUploadingPlano(null)
   }
 
-  const total = properties.length
-  const publicados = properties.filter(p => p.estado_marketing === 'publicado').length
-  const sinEstado = properties.filter(p => !p.estado_marketing).length
+  const total = filtered.length
+const publicados = filtered.filter(p => p.estado_marketing === 'publicado').length
+const sinEstado = filtered.filter(p => !p.estado_marketing).length
 
   return (
     <div className="min-h-screen bg-[#EBEAE6]">
@@ -415,6 +417,14 @@ export default function CaptacionPage() {
                 <option value="null">Sin estado</option>
                 {ESTADOS_MARKETING.filter(e => e.value).map(e => <option key={String(e.value)} value={String(e.value)}>{e.label}</option>)}
               </select>
+              <select
+  value={filterAsesor}
+  onChange={e => setFilterAsesor(e.target.value)}
+  className="px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20"
+>
+  <option value="">Todos los asesores</option>
+  {ASESORES.map(a => <option key={a.nombre} value={a.nombre}>{a.nombre}</option>)}
+</select>
             </div>
           </div>
 
