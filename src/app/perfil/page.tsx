@@ -44,7 +44,7 @@ interface Toast { msg: string; type: ToastType }
 function Avatar({ url, initials, size = 'lg' }: { url?: string | null; initials: string; size?: 'sm' | 'lg' }) {
   const dim = size === 'lg' ? 'w-36 h-36 text-4xl' : 'w-16 h-16 text-xl'
   if (url) {
-    return <img src={url} alt="Avatar" className={`${dim} rounded-full object-cover object-[20%] border-4 border-white shadow-xl`} />
+    return <img src={url} alt="Avatar" className={`${dim} rounded-full object-cover object-[10%] border-4 border-white shadow-xl`} />
   }
   return (
     <div className={`${dim} rounded-full bg-gradient-to-br from-[#1E2D40] to-[#3a5270] flex items-center justify-center text-white font-bold border-4 border-white shadow-xl`}>
