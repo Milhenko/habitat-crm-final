@@ -19,7 +19,7 @@ const COLUMNAS = [
     { id: "Descartados / En Pausa", color: "border-red-400", badge: "bg-red-100 text-red-700", alerta: false },
 ];
 
-const CARDS_PER_COLUMN = 20;
+const CARDS_PER_COLUMN_STEP = 20;
 
 interface Lead {
     id: string;
@@ -43,6 +43,9 @@ export default function VentasPage() {
     const [leads, setLeads] = useState<Lead[]>([]);
     const [loading, setLoading] = useState(true);
     const [draggingId, setDraggingId] = useState<string | null>(null);
+    const [visibleCards, setVisibleCards] = useState<Record<string, number>>({})
+const getVisible = (col: string) => visibleCards[col] || CARDS_PER_COLUMN_STEP
+const loadMore = (col: string) => setVisibleCards(prev => ({ ...prev, [col]: (prev[col] || CARDS_PER_COLUMN_STEP) + CARDS_PER_COLUMN_STEP }))
     const [leadSeleccionado, setLeadSeleccionado] = useState<Lead | null>(null);
     const [busqueda, setBusqueda] = useState("");
     const [filtroEstado, setFiltroEstado] = useState("");
@@ -278,9 +281,9 @@ export default function VentasPage() {
             <div className="overflow-x-auto pb-8 px-6">
                 <div className="flex gap-4" style={{ minWidth: `${COLUMNAS.length * 300}px` }}>
                     {COLUMNAS.map((col) => {
-                        const colLeads = getLeadsByColumna(col.id);
-                        const total = getTotalByColumna(col.id);
-                        const hasMore = total > CARDS_PER_COLUMN;
+                        const colLeads = leadsFiltrados.filter(l => l.status === col.id).slice(0, getVisible(col.id));
+const total = getTotalByColumna(col.id);
+const hasMore = total > getVisible(col.id);
 
                         return (
                             <div
@@ -378,9 +381,12 @@ export default function VentasPage() {
                                     )}
 
                                     {hasMore && (
-                                        <div className="text-center py-4 text-[#1E2D40] text-xs font-bold">
-                                            +{total - CARDS_PER_COLUMN} más
-                                        </div>
+                                        <button
+    onClick={() => loadMore(col.id)}
+    className="w-full py-3 text-xs font-black text-[#1E2D40] hover:bg-[#1E2D40]/5 rounded-xl transition-colors border border-[#1E2D40]/10 mt-1"
+  >
+    Ver 20 más ({total - getVisible(col.id)} restantes)
+  </button>
                                     )}
                                 </div>
                             </div>
