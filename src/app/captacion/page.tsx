@@ -210,6 +210,7 @@ export default function CaptacionPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<FormData>(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
+  const [viewingProperty, setViewingProperty] = useState<Property | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
   const [step, setStep] = useState(0)
   const [search, setSearch] = useState('')
@@ -490,6 +491,7 @@ const sinEstado = filtered.filter(p => !p.estado_marketing).length
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex gap-2">
+                            <button onClick={() => setViewingProperty(p)} className="text-xs font-bold px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-colors">Ver</button>
                             {(user?.role === 'Super Administrador' || user?.name === p.asesor_nombre) && (
   <button onClick={() => openEdit(p)} className="text-xs font-bold px-3 py-1.5 bg-[#1E2D40]/10 text-[#1E2D40] rounded-lg hover:bg-[#1E2D40]/20 transition-colors">Editar</button>
 )} className="text-xs font-bold px-3 py-1.5 bg-[#1E2D40]/10 text-[#1E2D40] rounded-lg hover:bg-[#1E2D40]/20 transition-colors">Editar</button>
@@ -926,4 +928,58 @@ const sinEstado = filtered.filter(p => !p.estado_marketing).length
       )}
     </div>
   )
+  {viewingProperty && (
+  <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setViewingProperty(null)}>
+    <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
+      <div className="flex items-center justify-between p-6 border-b border-[#1A1A1A]/10">
+        <div>
+          <h2 className="text-lg font-black text-[#1E2D40]">{viewingProperty.code}</h2>
+          <p className="text-xs text-[#1A1A1A]/50 mt-0.5">{viewingProperty.address}</p>
+        </div>
+        <button onClick={() => setViewingProperty(null)} className="text-[#1A1A1A]/40 hover:text-[#1A1A1A] text-2xl leading-none">×</button>
+      </div>
+      <div className="p-6 space-y-4">
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            { label: 'Tipo', value: viewingProperty.type },
+            { label: 'Operación', value: viewingProperty.tipo_operacion },
+            { label: 'Zona', value: viewingProperty.zone },
+            { label: 'Precio', value: viewingProperty.price_initial ? `$${viewingProperty.price_initial.toLocaleString('es-EC')}` : null },
+            { label: 'M² Construcción', value: viewingProperty.metros_construccion ? `${viewingProperty.metros_construccion} m²` : null },
+            { label: 'M² Terreno', value: viewingProperty.metros_terreno ? `${viewingProperty.metros_terreno} m²` : null },
+            { label: 'Dormitorios', value: viewingProperty.dormitorios },
+            { label: 'Baños', value: viewingProperty.banos_completos },
+            { label: 'Parqueos', value: viewingProperty.parqueos },
+            { label: 'Comisión', value: viewingProperty.comision ? `${viewingProperty.comision}%` : null },
+            { label: 'Reserva', value: viewingProperty.reserva ? `$${viewingProperty.reserva.toLocaleString('es-EC')}` : null },
+            { label: 'Asesor', value: viewingProperty.asesor_nombre },
+          ].filter(i => i.value).map(item => (
+            <div key={item.label} className="bg-[#EBEAE6]/50 rounded-xl p-3">
+              <p className="text-[10px] font-bold text-[#1A1A1A]/40 uppercase tracking-wide">{item.label}</p>
+              <p className="text-sm font-bold text-[#1E2D40] mt-0.5">{item.value}</p>
+            </div>
+          ))}
+        </div>
+        {viewingProperty.observaciones && (
+          <div className="bg-[#EBEAE6]/50 rounded-xl p-3">
+            <p className="text-[10px] font-bold text-[#1A1A1A]/40 uppercase tracking-wide mb-1">Observaciones</p>
+            <p className="text-sm text-[#1A1A1A]/70">{viewingProperty.observaciones}</p>
+          </div>
+        )}
+        {viewingProperty.slug && (
+          <div className="bg-[#EBEAE6]/50 rounded-xl p-3">
+            <p className="text-[10px] font-bold text-[#1A1A1A]/40 uppercase tracking-wide mb-1">URL del landing</p>
+            <div className="flex items-center gap-2">
+              <p className="text-sm text-[#1E2D40] font-mono flex-1 truncate">habitatbienesraicesec.com/propiedades/{viewingProperty.slug}</p>
+              <button onClick={() => navigator.clipboard.writeText(`https://www.habitatbienesraicesec.com/propiedades/${viewingProperty.slug}`)}
+                className="text-xs font-bold px-3 py-1.5 bg-[#1E2D40] text-white rounded-lg">
+                Copiar
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+)}
 }
