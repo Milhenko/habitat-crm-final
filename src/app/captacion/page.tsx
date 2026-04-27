@@ -216,6 +216,8 @@ export default function CaptacionPage() {
   const [filterType, setFilterType] = useState('')
   const [filterEstado, setFilterEstado] = useState('all')
   const [filterAsesor, setFilterAsesor] = useState('')
+  const [filterZona, setFilterZona] = useState('')
+const [filterOperacion, setFilterOperacion] = useState('')
   const [fotosSubidas, setFotosSubidas] = useState<{ nombre: string; url: string }[]>([])
   const [uploadingFoto, setUploadingFoto] = useState<string | null>(null)
   const [planosSubidos, setPlanosSubidos] = useState<{ nombre: string; url: string }[]>([])
@@ -253,6 +255,8 @@ export default function CaptacionPage() {
   const filtered = properties.filter(p => {
     if (filterType && p.type !== filterType) return false
     if (filterAsesor && p.asesor_nombre !== filterAsesor) return false
+    if (filterZona && !(p.zone ?? '').toLowerCase().includes(filterZona.toLowerCase())) return false
+if (filterOperacion && p.tipo_operacion !== filterOperacion) return false
     if (filterEstado !== 'all' && (p.estado_marketing ?? 'null') !== (filterEstado === 'null' ? 'null' : filterEstado)) return false
     if (search) {
       const q = search.toLowerCase()
@@ -425,6 +429,22 @@ const sinEstado = filtered.filter(p => !p.estado_marketing).length
   <option value="">Todos los asesores</option>
   {ASESORES.map(a => <option key={a.nombre} value={a.nombre}>{a.nombre}</option>)}
 </select>
+              <select
+  value={filterOperacion}
+  onChange={e => setFilterOperacion(e.target.value)}
+  className="px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20"
+>
+  <option value="">Todas las operaciones</option>
+  <option value="Venta">Venta</option>
+  <option value="Alquiler">Alquiler</option>
+  <option value="Venta y Alquiler">Venta y Alquiler</option>
+</select>
+<input
+  placeholder="Filtrar por zona..."
+  value={filterZona}
+  onChange={e => setFilterZona(e.target.value)}
+  className="px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20 w-40"
+/>
             </div>
           </div>
 
