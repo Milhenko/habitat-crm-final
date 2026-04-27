@@ -490,7 +490,9 @@ const sinEstado = filtered.filter(p => !p.estado_marketing).length
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex gap-2">
-                            <button onClick={() => openEdit(p)} className="text-xs font-bold px-3 py-1.5 bg-[#1E2D40]/10 text-[#1E2D40] rounded-lg hover:bg-[#1E2D40]/20 transition-colors">Editar</button>
+                            {(user?.role === 'Super Administrador' || user?.name === p.asesor_nombre) && (
+  <button onClick={() => openEdit(p)} className="text-xs font-bold px-3 py-1.5 bg-[#1E2D40]/10 text-[#1E2D40] rounded-lg hover:bg-[#1E2D40]/20 transition-colors">Editar</button>
+)} className="text-xs font-bold px-3 py-1.5 bg-[#1E2D40]/10 text-[#1E2D40] rounded-lg hover:bg-[#1E2D40]/20 transition-colors">Editar</button>
                             <button onClick={() => handleDelete(p.id)} className="text-xs font-bold px-3 py-1.5 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-colors">Eliminar</button>
                           </div>
                         </td>
