@@ -928,7 +928,9 @@ const sinEstado = filtered.filter(p => !p.estado_marketing).length
       )}
     </div>
   )
-  {viewingProperty && (
+ {viewingProperty && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setViewingProperty(null)}>
+          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
   <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setViewingProperty(null)}>
     <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
       <div className="flex items-center justify-between p-6 border-b border-[#1A1A1A]/10">
@@ -980,6 +982,8 @@ const sinEstado = filtered.filter(p => !p.estado_marketing).length
         )}
       </div>
     </div>
+   </div>
+    )}
   </div>
-)}
+  )
 }
