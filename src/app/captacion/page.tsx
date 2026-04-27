@@ -493,8 +493,8 @@ const sinEstado = filtered.filter(p => !p.estado_marketing).length
                           <div className="flex gap-2">
                             <button onClick={() => setViewingProperty(p)} className="text-xs font-bold px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-colors">Ver</button>
                             {(user?.role === 'Super Administrador' || user?.name === p.asesor_nombre) && (
-  <button onClick={() => openEdit(p)} className="text-xs font-bold px-3 py-1.5 bg-[#1E2D40]/10 text-[#1E2D40] rounded-lg hover:bg-[#1E2D40]/20 transition-colors">Editar</button>
-)} className="text-xs font-bold px-3 py-1.5 bg-[#1E2D40]/10 text-[#1E2D40] rounded-lg hover:bg-[#1E2D40]/20 transition-colors">Editar</button>
+                        <button onClick={() => openEdit(p)} className="text-xs font-bold px-3 py-1.5 bg-[#1E2D40]/10 text-[#1E2D40] rounded-lg hover:bg-[#1E2D40]/20 transition-colors">Editar</button>
+                      )} className="text-xs font-bold px-3 py-1.5 bg-[#1E2D40]/10 text-[#1E2D40] rounded-lg hover:bg-[#1E2D40]/20 transition-colors">Editar</button>
                             <button onClick={() => handleDelete(p.id)} className="text-xs font-bold px-3 py-1.5 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-colors">Eliminar</button>
                           </div>
                         </td>
@@ -919,16 +919,7 @@ const sinEstado = filtered.filter(p => !p.estado_marketing).length
                 ) : (
                   <button onClick={handleSave} disabled={saving} className="text-sm font-bold px-4 py-2 bg-[#1E2D40] text-white rounded-xl hover:bg-[#1E2D40]/90 transition-colors disabled:opacity-50">
                     {saving ? 'Guardando...' : editingId ? 'Actualizar' : 'Crear captación'}
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  )
-  {viewingProperty && (
+                    {viewingProperty && (
   <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setViewingProperty(null)}>
     <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
       <div className="flex items-center justify-between p-6 border-b border-[#1A1A1A]/10">
