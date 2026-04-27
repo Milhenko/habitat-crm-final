@@ -919,7 +919,16 @@ const sinEstado = filtered.filter(p => !p.estado_marketing).length
                 ) : (
                   <button onClick={handleSave} disabled={saving} className="text-sm font-bold px-4 py-2 bg-[#1E2D40] text-white rounded-xl hover:bg-[#1E2D40]/90 transition-colors disabled:opacity-50">
                     {saving ? 'Guardando...' : editingId ? 'Actualizar' : 'Crear captación'}
-                    {viewingProperty && (
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+  {viewingProperty && (
   <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setViewingProperty(null)}>
     <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
       <div className="flex items-center justify-between p-6 border-b border-[#1A1A1A]/10">
