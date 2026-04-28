@@ -13,7 +13,6 @@ interface Property {
   type: string | null
   zone: string | null
   address: string | null
-  slug: string | null
   price_initial: number | null
   estado_marketing: EstadoMarketing
   grabado: boolean | null
@@ -30,7 +29,6 @@ interface Property {
   banos_completos: number | null
   medio_bano: number | null
   parqueos: number | null
-  // Amenidades propiedad
   piscina_propia: boolean | null
   gimnasio_propio: boolean | null
   bbq_propio: boolean | null
@@ -41,7 +39,6 @@ interface Property {
   bano_servicio: boolean | null
   lavanderia: boolean | null
   cocina_equipada: boolean | null
-  // Amenidades urbanización
   piscina_urb: boolean | null
   gimnasio_urb: boolean | null
   bbq_urb: boolean | null
@@ -50,7 +47,6 @@ interface Property {
   juegos_infantiles: boolean | null
   area_comunal: boolean | null
   seguridad_24h: boolean | null
-  // Resto
   amoblado: boolean | null
   exclusividad: boolean | null
   comision: number | null
@@ -66,6 +62,7 @@ interface Property {
   fotos: string[] | null
   fotos_nombres: string[] | null
   planos: string[] | null
+  slug: string | null
   reserva: number | null
   promesa_porcentaje: number | null
   promesa_valor: number | null
@@ -79,7 +76,7 @@ interface Property {
 type FormData = Omit<Property, 'id'>
 
 const EMPTY_FORM: FormData = {
-  code: '', type: '', zone: '', address: '', slug: '', price_initial: null,
+  code: '', type: '', zone: '', address: '', price_initial: null,
   estado_marketing: null, grabado: false, editado: false, publicado: false,
   notas_marketing: '', asesor_id: null, asesor_nombre: '', asesor_iniciales: '',
   metros_terreno: null, metros_construccion: null, metros_parqueo: null,
@@ -95,58 +92,41 @@ const EMPTY_FORM: FormData = {
   propietario_nombre: '', propietario_ci: '', propietario_celular: '',
   propietario_email: '', alicuota: null, entrega_llaves: false,
   observaciones: '', fotos: null, fotos_nombres: null, planos: null,
-  reserva: null,
-  promesa_porcentaje: null,
-  promesa_valor: null,
-  financiamiento_porcentaje: null,
-  financiamiento_valor: null,
-  financiamiento_meses: null,
-  compraventa_porcentaje: null,
-  compraventa_valor: null,
+  slug: '',
+  reserva: null, promesa_porcentaje: null, promesa_valor: null,
+  financiamiento_porcentaje: null, financiamiento_valor: null,
+  financiamiento_meses: null, compraventa_porcentaje: null, compraventa_valor: null,
 }
 
 const TIPOS = ['Casa/Villa', 'Departamento', 'Local Comercial', 'Oficina', 'Suite', 'Bodega', 'Terreno', 'Otro']
 const ESTADOS_MARKETING = [
-  { value: null,        label: 'Sin estado',  bg: 'bg-gray-100',   text: 'text-gray-600' },
-  { value: 'grabado',   label: 'Grabado',     bg: 'bg-amber-100',  text: 'text-amber-700' },
-  { value: 'editado',   label: 'Editado',     bg: 'bg-blue-100',   text: 'text-blue-700' },
-  { value: 'publicado', label: 'Publicado',   bg: 'bg-green-100',  text: 'text-green-700' },
+  { value: null, label: 'Sin estado', bg: 'bg-gray-100', text: 'text-gray-600' },
+  { value: 'grabado', label: 'Grabado', bg: 'bg-amber-100', text: 'text-amber-700' },
+  { value: 'editado', label: 'Editado', bg: 'bg-blue-100', text: 'text-blue-700' },
+  { value: 'publicado', label: 'Publicado', bg: 'bg-green-100', text: 'text-green-700' },
 ]
 const STEPS = ['Inmueble', 'Económico', 'Características', 'Propietario', 'Marketing', 'Fotos']
-
 const ASESORES = [
-  { nombre: 'Milenko Surati',       iniciales: 'MS' },
-  { nombre: 'Gastón Calderón',      iniciales: 'GC' },
-  { nombre: 'Rafaela Velásquez',    iniciales: 'RV' },
-  { nombre: 'José Morán',           iniciales: 'JM' },
-  { nombre: 'Sebastián Jaramillo',  iniciales: 'SJ' },
+  { nombre: 'Milenko Surati', iniciales: 'MS' },
+  { nombre: 'Gastón Calderón', iniciales: 'GC' },
+  { nombre: 'Rafaela Velásquez', iniciales: 'RV' },
+  { nombre: 'José Morán', iniciales: 'JM' },
+  { nombre: 'Sebastián Jaramillo', iniciales: 'SJ' },
 ]
-
-const FOTO_NOMBRES = [
-  'Fachada',
-  'Sala',
-  'Cocina',
-  'Dormitorio principal',
-  'Dormitorio 2',
-  'Dormitorio 3',
-  'Baño principal',
-  'Terraza / Balcón',
-  'Área de servicio',
-  'Vista aérea',
-  'Piscina',
-  'Área comunal',
-]
-
-const PLANO_NOMBRES = [
-  'Plano 1',
-  'Plano 2',
-  'Plano 3',
-  'Plano 4',
-  'Plano 5',
-]
-
+const FOTO_NOMBRES = ['Fachada', 'Sala', 'Cocina', 'Dormitorio principal', 'Dormitorio 2', 'Dormitorio 3', 'Baño principal', 'Terraza / Balcón', 'Área de servicio', 'Vista aérea', 'Piscina', 'Área comunal']
+const PLANO_NOMBRES = ['Plano 1', 'Plano 2', 'Plano 3', 'Plano 4', 'Plano 5']
 const CLOUDINARY_CLOUD = 'dl64kkfbp'
 const CLOUDINARY_PRESET = 'habitat_properties'
+
+function generarSlug(zone: string, type: string, address: string): string {
+  return `${zone} ${type} ${address}`
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .slice(0, 50)
+}
 
 function EstadoBadge({ estado }: { estado: EstadoMarketing }) {
   const e = ESTADOS_MARKETING.find(x => x.value === estado) ?? ESTADOS_MARKETING[0]
@@ -191,16 +171,6 @@ function CheckField({ label, checked, onChange }: { label: string; checked: bool
   )
 }
 
-function generarSlug(zone: string, type: string, address: string): string {
-  return `${zone} ${type} ${address}`
-    .toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9\s-]/g, '')
-    .trim()
-    .replace(/\s+/g, '-')
-    .slice(0, 50)
-}
-
 export default function CaptacionPage() {
   const { user } = useAuth()
   const [properties, setProperties] = useState<Property[]>([])
@@ -210,7 +180,6 @@ export default function CaptacionPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<FormData>(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
-  const [viewingProperty, setViewingProperty] = useState<Property | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
   const [step, setStep] = useState(0)
   const [search, setSearch] = useState('')
@@ -218,11 +187,12 @@ export default function CaptacionPage() {
   const [filterEstado, setFilterEstado] = useState('all')
   const [filterAsesor, setFilterAsesor] = useState('')
   const [filterZona, setFilterZona] = useState('')
-const [filterOperacion, setFilterOperacion] = useState('')
+  const [filterOperacion, setFilterOperacion] = useState('')
   const [fotosSubidas, setFotosSubidas] = useState<{ nombre: string; url: string }[]>([])
   const [uploadingFoto, setUploadingFoto] = useState<string | null>(null)
   const [planosSubidos, setPlanosSubidos] = useState<{ nombre: string; url: string }[]>([])
   const [uploadingPlano, setUploadingPlano] = useState<string | null>(null)
+  const [viewingProperty, setViewingProperty] = useState<Property | null>(null)
 
   async function fetchProperties() {
     setLoading(true); setError(null)
@@ -234,7 +204,6 @@ const [filterOperacion, setFilterOperacion] = useState('')
 
   useEffect(() => { fetchProperties() }, [])
 
-  // Auto-detectar asesor desde sesión
   useEffect(() => {
     if (user && !editingId) {
       const asesor = ASESORES.find(a => a.nombre.toLowerCase() === user.name?.toLowerCase())
@@ -257,7 +226,7 @@ const [filterOperacion, setFilterOperacion] = useState('')
     if (filterType && p.type !== filterType) return false
     if (filterAsesor && p.asesor_nombre !== filterAsesor) return false
     if (filterZona && !(p.zone ?? '').toLowerCase().includes(filterZona.toLowerCase())) return false
-if (filterOperacion && p.tipo_operacion !== filterOperacion) return false
+    if (filterOperacion && p.tipo_operacion !== filterOperacion) return false
     if (filterEstado !== 'all' && (p.estado_marketing ?? 'null') !== (filterEstado === 'null' ? 'null' : filterEstado)) return false
     if (search) {
       const q = search.toLowerCase()
@@ -282,19 +251,9 @@ if (filterOperacion && p.tipo_operacion !== filterOperacion) return false
     setForm({ ...p } as FormData)
     const urls = p.fotos ?? []
     const noms = p.fotos_nombres ?? []
-    setFotosSubidas(
-      urls.map((url, i) => ({
-        url,
-        nombre: noms[i] ?? FOTO_NOMBRES[i] ?? `Foto ${i + 1}`,
-      }))
-    )
+    setFotosSubidas(urls.map((url, i) => ({ url, nombre: noms[i] ?? FOTO_NOMBRES[i] ?? `Foto ${i + 1}` })))
     const planoUrls = p.planos ?? []
-    setPlanosSubidos(
-      planoUrls.map((url, i) => ({
-        url,
-        nombre: PLANO_NOMBRES[i] ?? `Plano ${i + 1}`,
-      }))
-    )
+    setPlanosSubidos(planoUrls.map((url, i) => ({ url, nombre: PLANO_NOMBRES[i] ?? `Plano ${i + 1}` })))
     setStep(0); setFormError(null); setShowModal(true)
   }
 
@@ -302,14 +261,14 @@ if (filterOperacion && p.tipo_operacion !== filterOperacion) return false
 
   async function handleSave() {
     const errores: string[] = []
-    if (!form.address?.trim())             errores.push('Dirección')
-    if (!form.type?.trim())                errores.push('Tipo de inmueble')
-    if (!form.tipo_operacion?.trim())      errores.push('Tipo de operación')
-    if (!form.price_initial)               errores.push('Precio total')
-    if (!form.propietario_nombre?.trim())  errores.push('Nombre del propietario')
+    if (!form.address?.trim()) errores.push('Dirección')
+    if (!form.type?.trim()) errores.push('Tipo de inmueble')
+    if (!form.tipo_operacion?.trim()) errores.push('Tipo de operación')
+    if (!form.price_initial) errores.push('Precio referencial')
+    if (!form.propietario_nombre?.trim()) errores.push('Nombre del propietario')
     if (!form.propietario_celular?.trim()) errores.push('Celular del propietario')
-    if (!form.asesor_nombre?.trim())       errores.push('Asesor responsable')
-    if (!form.comision)                    errores.push('Comisión')
+    if (!form.asesor_nombre?.trim()) errores.push('Asesor responsable')
+    if (!form.comision) errores.push('Comisión')
     if (errores.length > 0) { setFormError(`Campos obligatorios: ${errores.join(', ')}`); return }
 
     setSaving(true); setFormError(null)
@@ -333,13 +292,8 @@ if (filterOperacion && p.tipo_operacion !== filterOperacion) return false
     data.append('file', file)
     data.append('upload_preset', CLOUDINARY_PRESET)
     data.append('public_id', `habitat/${form.type || 'propiedad'}/${nombre.toLowerCase().replace(/ /g, '_')}_${Date.now()}`)
-
-    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`, {
-      method: 'POST',
-      body: data,
-    })
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`, { method: 'POST', body: data })
     const result = await res.json()
-
     if (result.secure_url) {
       const nuevas = fotosSubidas.filter(item => item.nombre !== nombre)
       const actualizadas = [...nuevas, { nombre, url: result.secure_url }]
@@ -368,8 +322,8 @@ if (filterOperacion && p.tipo_operacion !== filterOperacion) return false
   }
 
   const total = filtered.length
-const publicados = filtered.filter(p => p.estado_marketing === 'publicado').length
-const sinEstado = filtered.filter(p => !p.estado_marketing).length
+  const publicados = filtered.filter(p => p.estado_marketing === 'publicado').length
+  const sinEstado = filtered.filter(p => !p.estado_marketing).length
 
   return (
     <div className="min-h-screen bg-[#EBEAE6]">
@@ -391,9 +345,9 @@ const sinEstado = filtered.filter(p => !p.estado_marketing).length
 
           <div className="grid grid-cols-3 gap-4">
             {[
-              { label: 'Total captaciones', value: total,      color: 'text-[#1E2D40]' },
-              { label: 'Publicadas',         value: publicados, color: 'text-green-600' },
-              { label: 'Sin estado',         value: sinEstado,  color: 'text-amber-600' },
+              { label: 'Total captaciones', value: total, color: 'text-[#1E2D40]' },
+              { label: 'Publicadas', value: publicados, color: 'text-green-600' },
+              { label: 'Sin estado', value: sinEstado, color: 'text-amber-600' },
             ].map(s => (
               <div key={s.label} className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-[#1A1A1A]/5 p-5">
                 <div className={`text-3xl font-black ${s.color}`}>{s.value}</div>
@@ -403,8 +357,8 @@ const sinEstado = filtered.filter(p => !p.estado_marketing).length
           </div>
 
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-[#1A1A1A]/5 p-5">
-            <div className="flex flex-col md:flex-row gap-3">
-              <div className="flex-1 relative">
+            <div className="flex flex-col md:flex-row gap-3 flex-wrap">
+              <div className="flex-1 relative min-w-[200px]">
                 <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#1A1A1A]/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
@@ -422,30 +376,20 @@ const sinEstado = filtered.filter(p => !p.estado_marketing).length
                 <option value="null">Sin estado</option>
                 {ESTADOS_MARKETING.filter(e => e.value).map(e => <option key={String(e.value)} value={String(e.value)}>{e.label}</option>)}
               </select>
-              <select
-  value={filterAsesor}
-  onChange={e => setFilterAsesor(e.target.value)}
-  className="px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20"
->
-  <option value="">Todos los asesores</option>
-  {ASESORES.map(a => <option key={a.nombre} value={a.nombre}>{a.nombre}</option>)}
-</select>
-              <select
-  value={filterOperacion}
-  onChange={e => setFilterOperacion(e.target.value)}
-  className="px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20"
->
-  <option value="">Todas las operaciones</option>
-  <option value="Venta">Venta</option>
-  <option value="Alquiler">Alquiler</option>
-  <option value="Venta y Alquiler">Venta y Alquiler</option>
-</select>
-<input
-  placeholder="Filtrar por zona..."
-  value={filterZona}
-  onChange={e => setFilterZona(e.target.value)}
-  className="px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20 w-40"
-/>
+              <select value={filterAsesor} onChange={e => setFilterAsesor(e.target.value)}
+                className="px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20">
+                <option value="">Todos los asesores</option>
+                {ASESORES.map(a => <option key={a.nombre} value={a.nombre}>{a.nombre}</option>)}
+              </select>
+              <select value={filterOperacion} onChange={e => setFilterOperacion(e.target.value)}
+                className="px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20">
+                <option value="">Todas las operaciones</option>
+                <option value="Venta">Venta</option>
+                <option value="Alquiler">Alquiler</option>
+                <option value="Venta y Alquiler">Venta y Alquiler</option>
+              </select>
+              <input placeholder="Filtrar por zona..." value={filterZona} onChange={e => setFilterZona(e.target.value)}
+                className="px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20 w-40" />
             </div>
           </div>
 
@@ -493,9 +437,11 @@ const sinEstado = filtered.filter(p => !p.estado_marketing).length
                           <div className="flex gap-2">
                             <button onClick={() => setViewingProperty(p)} className="text-xs font-bold px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-colors">Ver</button>
                             {(user?.role === 'Super Administrador' || user?.name === p.asesor_nombre) && (
-                        <button onClick={() => openEdit(p)} className="text-xs font-bold px-3 py-1.5 bg-[#1E2D40]/10 text-[#1E2D40] rounded-lg hover:bg-[#1E2D40]/20 transition-colors">Editar</button>
-                      )} className="text-xs font-bold px-3 py-1.5 bg-[#1E2D40]/10 text-[#1E2D40] rounded-lg hover:bg-[#1E2D40]/20 transition-colors">Editar</button>
-                            <button onClick={() => handleDelete(p.id)} className="text-xs font-bold px-3 py-1.5 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-colors">Eliminar</button>
+                              <button onClick={() => openEdit(p)} className="text-xs font-bold px-3 py-1.5 bg-[#1E2D40]/10 text-[#1E2D40] rounded-lg hover:bg-[#1E2D40]/20 transition-colors">Editar</button>
+                            )}
+                            {user?.role === 'Super Administrador' && (
+                              <button onClick={() => handleDelete(p.id)} className="text-xs font-bold px-3 py-1.5 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-colors">Eliminar</button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -508,10 +454,10 @@ const sinEstado = filtered.filter(p => !p.estado_marketing).length
         </div>
       </main>
 
+      {/* MODAL EDITAR */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto shadow-2xl">
-
             <div className="flex items-center justify-between p-6 pb-0">
               <h2 className="text-lg font-black text-[#1E2D40] tracking-tighter">
                 {editingId ? 'Editar captación' : 'Nueva captación'}
@@ -533,7 +479,6 @@ const sinEstado = filtered.filter(p => !p.estado_marketing).length
             )}
 
             <div className="p-6">
-
               {step === 0 && (
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -555,14 +500,9 @@ const sinEstado = filtered.filter(p => !p.estado_marketing).length
                     <Label>URL de la propiedad</Label>
                     <div className="flex items-center gap-2 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl overflow-hidden">
                       <span className="text-xs text-[#1A1A1A]/40 pl-3 whitespace-nowrap">habitatbienesraicesec.com/propiedades/</span>
-                      <input
-                        value={form.slug ?? ''}
-                        onChange={e => f('slug', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-                        className="flex-1 px-2 py-2.5 bg-transparent text-sm focus:outline-none text-[#1E2D40] font-mono"
-                        placeholder="se genera automáticamente"
-                      />
+                      <input value={form.slug ?? ''} onChange={e => f('slug', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                        className="flex-1 px-2 py-2.5 bg-transparent text-sm focus:outline-none text-[#1E2D40] font-mono" placeholder="auto" />
                     </div>
-                    <p className="text-xs text-[#1A1A1A]/30 mt-1">Puedes editarlo manualmente si lo necesitas</p>
                   </div>
                   <div>
                     <Label>M² Terreno</Label>
@@ -629,24 +569,13 @@ const sinEstado = filtered.filter(p => !p.estado_marketing).length
                     <CheckField label="Amoblado" checked={!!form.amoblado} onChange={v => f('amoblado', v)} />
                     <CheckField label="Entrega de llaves" checked={!!form.entrega_llaves} onChange={v => f('entrega_llaves', v)} />
                   </div>
-
-                  {/* SECCIÓN FINANCIERA */}
                   <div className="col-span-2 pt-4 border-t border-[#1A1A1A]/10">
                     <p className="text-xs font-black text-[#1E2D40] uppercase tracking-wider mb-4">Estructura de pago</p>
                     <div className="space-y-4">
-
-                      {/* Reserva */}
                       <div className="bg-[#EBEAE6]/50 rounded-xl p-4">
                         <p className="text-xs font-bold text-[#1A1A1A]/60 uppercase tracking-wide mb-3">Reserva</p>
-                        <div className="grid grid-cols-1 gap-3">
-                          <div>
-                            <Label>Valor de reserva ($)</Label>
-                            <Input type="number" value={form.reserva ?? ''} onChange={v => f('reserva', v ? +v : null)} placeholder="2000" />
-                          </div>
-                        </div>
+                        <Input type="number" value={form.reserva ?? ''} onChange={v => f('reserva', v ? +v : null)} placeholder="2000" />
                       </div>
-
-                      {/* Promesa de compraventa */}
                       <div className="bg-[#EBEAE6]/50 rounded-xl p-4">
                         <p className="text-xs font-bold text-[#1A1A1A]/60 uppercase tracking-wide mb-3">Promesa de compraventa</p>
                         <div className="grid grid-cols-2 gap-3">
@@ -666,8 +595,6 @@ const sinEstado = filtered.filter(p => !p.estado_marketing).length
                           </div>
                         </div>
                       </div>
-
-                      {/* Financiamiento */}
                       <div className="bg-[#EBEAE6]/50 rounded-xl p-4">
                         <p className="text-xs font-bold text-[#1A1A1A]/60 uppercase tracking-wide mb-3">Financiamiento</p>
                         <div className="grid grid-cols-2 gap-3">
@@ -686,7 +613,7 @@ const sinEstado = filtered.filter(p => !p.estado_marketing).length
                             </div>
                           </div>
                           <div className="col-span-2">
-                            <Label>Plazo (meses) — mín. 1, máx. 48</Label>
+                            <Label>Plazo (meses)</Label>
                             <input type="number" min={1} max={48} value={form.financiamiento_meses ?? ''} onChange={e => {
                               const val = Math.min(48, Math.max(1, +e.target.value))
                               f('financiamiento_meses', e.target.value ? val : null)
@@ -694,8 +621,6 @@ const sinEstado = filtered.filter(p => !p.estado_marketing).length
                           </div>
                         </div>
                       </div>
-
-                      {/* Compraventa */}
                       <div className="bg-[#EBEAE6]/50 rounded-xl p-4">
                         <p className="text-xs font-bold text-[#1A1A1A]/60 uppercase tracking-wide mb-3">Compraventa</p>
                         <div className="grid grid-cols-2 gap-3">
@@ -715,7 +640,6 @@ const sinEstado = filtered.filter(p => !p.estado_marketing).length
                           </div>
                         </div>
                       </div>
-
                     </div>
                   </div>
                 </div>
@@ -724,24 +648,11 @@ const sinEstado = filtered.filter(p => !p.estado_marketing).length
               {step === 2 && (
                 <div className="space-y-6">
                   <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>Dormitorios</Label>
-                      <Input type="number" value={form.dormitorios ?? ''} onChange={v => f('dormitorios', v ? +v : null)} placeholder="0" />
-                    </div>
-                    <div>
-                      <Label>Baños completos</Label>
-                      <Input type="number" value={form.banos_completos ?? ''} onChange={v => f('banos_completos', v ? +v : null)} placeholder="0" />
-                    </div>
-                    <div>
-                      <Label>Medio baño</Label>
-                      <Input type="number" value={form.medio_bano ?? ''} onChange={v => f('medio_bano', v ? +v : null)} placeholder="0" />
-                    </div>
-                    <div>
-                      <Label>Parqueos</Label>
-                      <Input type="number" value={form.parqueos ?? ''} onChange={v => f('parqueos', v ? +v : null)} placeholder="0" />
-                    </div>
+                    <div><Label>Dormitorios</Label><Input type="number" value={form.dormitorios ?? ''} onChange={v => f('dormitorios', v ? +v : null)} placeholder="0" /></div>
+                    <div><Label>Baños completos</Label><Input type="number" value={form.banos_completos ?? ''} onChange={v => f('banos_completos', v ? +v : null)} placeholder="0" /></div>
+                    <div><Label>Medio baño</Label><Input type="number" value={form.medio_bano ?? ''} onChange={v => f('medio_bano', v ? +v : null)} placeholder="0" /></div>
+                    <div><Label>Parqueos</Label><Input type="number" value={form.parqueos ?? ''} onChange={v => f('parqueos', v ? +v : null)} placeholder="0" /></div>
                   </div>
-
                   <div>
                     <p className="text-xs font-black text-[#1E2D40] uppercase tracking-wider mb-3 pb-2 border-b border-[#1A1A1A]/10">Amenidades de la propiedad</p>
                     <div className="grid grid-cols-3 gap-1">
@@ -757,7 +668,6 @@ const sinEstado = filtered.filter(p => !p.estado_marketing).length
                       <CheckField label="Cocina equipada" checked={!!form.cocina_equipada} onChange={v => f('cocina_equipada', v)} />
                     </div>
                   </div>
-
                   <div>
                     <p className="text-xs font-black text-[#1E2D40] uppercase tracking-wider mb-3 pb-2 border-b border-[#1A1A1A]/10">Amenidades de la urbanización</p>
                     <div className="grid grid-cols-3 gap-1">
@@ -833,9 +743,7 @@ const sinEstado = filtered.filter(p => !p.estado_marketing).length
 
               {step === 5 && (
                 <div className="space-y-4">
-                  <p className="text-xs text-[#1A1A1A]/50 mb-4">
-                    Sube las fotos con el nombre correcto. Formatos: JPG, PNG. Máx 10MB por foto.
-                  </p>
+                  <p className="text-xs text-[#1A1A1A]/50 mb-4">Sube las fotos con el nombre correcto. Formatos: JPG, PNG. Máx 10MB por foto.</p>
                   <div className="grid grid-cols-1 gap-3">
                     {FOTO_NOMBRES.map(nombre => {
                       const subida = fotosSubidas.find(item => item.nombre === nombre)
@@ -844,37 +752,19 @@ const sinEstado = filtered.filter(p => !p.estado_marketing).length
                         <div key={nombre} className={`flex items-center gap-3 p-3 rounded-xl border ${subida ? 'border-green-200 bg-green-50' : 'border-[#1A1A1A]/10 bg-[#EBEAE6]/30'}`}>
                           <div className="flex-1">
                             <p className="text-sm font-bold text-[#1E2D40]">{nombre}</p>
-                            {subida && <p className="text-xs text-green-600 mt-0.5 truncate">✓ Subida correctamente</p>}
+                            {subida && <p className="text-xs text-green-600 mt-0.5">✓ Subida correctamente</p>}
                           </div>
-                          {subida && (
-                            <img src={subida.url} alt={nombre} className="w-14 h-14 object-cover rounded-lg" />
-                          )}
+                          {subida && <img src={subida.url} alt={nombre} className="w-14 h-14 object-cover rounded-lg" />}
                           <label className={`cursor-pointer text-xs font-bold px-3 py-2 rounded-lg transition-colors ${uploading ? 'bg-gray-100 text-gray-400' : subida ? 'bg-[#1E2D40]/10 text-[#1E2D40]' : 'bg-[#1E2D40] text-white'}`}>
                             {uploading ? 'Subiendo...' : subida ? 'Cambiar' : 'Subir foto'}
-                            <input
-                              type="file"
-                              accept="image/*"
-                              className="hidden"
-                              disabled={uploading}
-                              onChange={e => {
-                                const file = e.target.files?.[0]
-                                if (file) handleFotoUpload(nombre, file)
-                              }}
-                            />
+                            <input type="file" accept="image/*" className="hidden" disabled={uploading} onChange={e => { const file = e.target.files?.[0]; if (file) handleFotoUpload(nombre, file) }} />
                           </label>
                         </div>
                       )
                     })}
                   </div>
-                  {fotosSubidas.length > 0 && (
-                    <p className="text-xs text-[#1A1A1A]/50 text-center mt-2">
-                      {fotosSubidas.length} de {FOTO_NOMBRES.length} fotos subidas
-                    </p>
-                  )}
-
                   <div className="mt-6 pt-6 border-t border-[#1A1A1A]/10">
                     <p className="text-xs font-black text-[#1E2D40] uppercase tracking-wider mb-3">Planos (opcional)</p>
-                    <p className="text-xs text-[#1A1A1A]/50 mb-4">Puedes subir hasta 5 planos del inmueble.</p>
                     <div className="grid grid-cols-1 gap-3">
                       {PLANO_NOMBRES.map(nombre => {
                         const subido = planosSubidos.find(item => item.nombre === nombre)
@@ -894,7 +784,6 @@ const sinEstado = filtered.filter(p => !p.estado_marketing).length
                         )
                       })}
                     </div>
-                    {planosSubidos.length > 0 && <p className="text-xs text-[#1A1A1A]/50 text-center mt-2">{planosSubidos.length} de 5 planos subidos</p>}
                   </div>
                 </div>
               )}
@@ -926,64 +815,62 @@ const sinEstado = filtered.filter(p => !p.estado_marketing).length
           </div>
         </div>
       )}
-    </div>
-  )
- {viewingProperty && (
+
+      {/* MODAL VER */}
+      {viewingProperty && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setViewingProperty(null)}>
           <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
-  <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setViewingProperty(null)}>
-    <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
-      <div className="flex items-center justify-between p-6 border-b border-[#1A1A1A]/10">
-        <div>
-          <h2 className="text-lg font-black text-[#1E2D40]">{viewingProperty.code}</h2>
-          <p className="text-xs text-[#1A1A1A]/50 mt-0.5">{viewingProperty.address}</p>
-        </div>
-        <button onClick={() => setViewingProperty(null)} className="text-[#1A1A1A]/40 hover:text-[#1A1A1A] text-2xl leading-none">×</button>
-      </div>
-      <div className="p-6 space-y-4">
-        <div className="grid grid-cols-2 gap-3">
-          {[
-            { label: 'Tipo', value: viewingProperty.type },
-            { label: 'Operación', value: viewingProperty.tipo_operacion },
-            { label: 'Zona', value: viewingProperty.zone },
-            { label: 'Precio', value: viewingProperty.price_initial ? `$${viewingProperty.price_initial.toLocaleString('es-EC')}` : null },
-            { label: 'M² Construcción', value: viewingProperty.metros_construccion ? `${viewingProperty.metros_construccion} m²` : null },
-            { label: 'M² Terreno', value: viewingProperty.metros_terreno ? `${viewingProperty.metros_terreno} m²` : null },
-            { label: 'Dormitorios', value: viewingProperty.dormitorios },
-            { label: 'Baños', value: viewingProperty.banos_completos },
-            { label: 'Parqueos', value: viewingProperty.parqueos },
-            { label: 'Comisión', value: viewingProperty.comision ? `${viewingProperty.comision}%` : null },
-            { label: 'Reserva', value: viewingProperty.reserva ? `$${viewingProperty.reserva.toLocaleString('es-EC')}` : null },
-            { label: 'Asesor', value: viewingProperty.asesor_nombre },
-          ].filter(i => i.value).map(item => (
-            <div key={item.label} className="bg-[#EBEAE6]/50 rounded-xl p-3">
-              <p className="text-[10px] font-bold text-[#1A1A1A]/40 uppercase tracking-wide">{item.label}</p>
-              <p className="text-sm font-bold text-[#1E2D40] mt-0.5">{item.value}</p>
+            <div className="flex items-center justify-between p-6 border-b border-[#1A1A1A]/10">
+              <div>
+                <h2 className="text-lg font-black text-[#1E2D40]">{viewingProperty.code}</h2>
+                <p className="text-xs text-[#1A1A1A]/50 mt-0.5">{viewingProperty.address}</p>
+              </div>
+              <button onClick={() => setViewingProperty(null)} className="text-[#1A1A1A]/40 hover:text-[#1A1A1A] text-2xl leading-none">×</button>
             </div>
-          ))}
-        </div>
-        {viewingProperty.observaciones && (
-          <div className="bg-[#EBEAE6]/50 rounded-xl p-3">
-            <p className="text-[10px] font-bold text-[#1A1A1A]/40 uppercase tracking-wide mb-1">Observaciones</p>
-            <p className="text-sm text-[#1A1A1A]/70">{viewingProperty.observaciones}</p>
-          </div>
-        )}
-        {viewingProperty.slug && (
-          <div className="bg-[#EBEAE6]/50 rounded-xl p-3">
-            <p className="text-[10px] font-bold text-[#1A1A1A]/40 uppercase tracking-wide mb-1">URL del landing</p>
-            <div className="flex items-center gap-2">
-              <p className="text-sm text-[#1E2D40] font-mono flex-1 truncate">habitatbienesraicesec.com/propiedades/{viewingProperty.slug}</p>
-              <button onClick={() => navigator.clipboard.writeText(`https://www.habitatbienesraicesec.com/propiedades/${viewingProperty.slug}`)}
-                className="text-xs font-bold px-3 py-1.5 bg-[#1E2D40] text-white rounded-lg">
-                Copiar
-              </button>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { label: 'Tipo', value: viewingProperty.type },
+                  { label: 'Operación', value: viewingProperty.tipo_operacion },
+                  { label: 'Zona', value: viewingProperty.zone },
+                  { label: 'Precio', value: viewingProperty.price_initial ? `$${viewingProperty.price_initial.toLocaleString('es-EC')}` : null },
+                  { label: 'M² Construcción', value: viewingProperty.metros_construccion ? `${viewingProperty.metros_construccion} m²` : null },
+                  { label: 'M² Terreno', value: viewingProperty.metros_terreno ? `${viewingProperty.metros_terreno} m²` : null },
+                  { label: 'Dormitorios', value: viewingProperty.dormitorios },
+                  { label: 'Baños', value: viewingProperty.banos_completos },
+                  { label: 'Parqueos', value: viewingProperty.parqueos },
+                  { label: 'Comisión', value: viewingProperty.comision ? `${viewingProperty.comision}%` : null },
+                  { label: 'Reserva', value: viewingProperty.reserva ? `$${viewingProperty.reserva.toLocaleString('es-EC')}` : null },
+                  { label: 'Asesor', value: viewingProperty.asesor_nombre },
+                ].filter(item => item.value).map(item => (
+                  <div key={item.label} className="bg-[#EBEAE6]/50 rounded-xl p-3">
+                    <p className="text-[10px] font-bold text-[#1A1A1A]/40 uppercase tracking-wide">{item.label}</p>
+                    <p className="text-sm font-bold text-[#1E2D40] mt-0.5">{item.value}</p>
+                  </div>
+                ))}
+              </div>
+              {viewingProperty.observaciones && (
+                <div className="bg-[#EBEAE6]/50 rounded-xl p-3">
+                  <p className="text-[10px] font-bold text-[#1A1A1A]/40 uppercase tracking-wide mb-1">Observaciones</p>
+                  <p className="text-sm text-[#1A1A1A]/70">{viewingProperty.observaciones}</p>
+                </div>
+              )}
+              {viewingProperty.slug && (
+                <div className="bg-[#EBEAE6]/50 rounded-xl p-3">
+                  <p className="text-[10px] font-bold text-[#1A1A1A]/40 uppercase tracking-wide mb-1">URL del landing</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm text-[#1E2D40] font-mono flex-1 truncate">habitatbienesraicesec.com/propiedades/{viewingProperty.slug}</p>
+                    <button onClick={() => navigator.clipboard.writeText(`https://www.habitatbienesraicesec.com/propiedades/${viewingProperty.slug}`)}
+                      className="text-xs font-bold px-3 py-1.5 bg-[#1E2D40] text-white rounded-lg flex-shrink-0">
+                      Copiar
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
-   </div>
-    )}
-  </div>
   )
 }
