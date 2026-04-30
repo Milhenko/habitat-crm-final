@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const VERIFY_TOKEN = Deno.env.get('META_VERIFY_TOKEN') || 'habitat_crm_verify_2024'
+const META_ACCESS_TOKEN = Deno.env.get('META_ACCESS_TOKEN')
 
 serve(async (req) => {
   const url = new URL(req.url)
@@ -35,28 +36,61 @@ serve(async (req) => {
         if (change.field === 'leadgen') {
           const leadgenId = change.value.leadgen_id
           const formId = change.value.form_id
-          const adId = change.value.ad_id
           
           console.log(`Processing lead: ${leadgenId}`)
           
-          // Aquí deberías obtener los datos completos del lead desde Meta Graph API
-          // Por ahora guardamos el ID para procesarlo después
-          
-          const { error } = await supabase.from('leads').insert({
-            name: 'Lead desde Meta',
-            phone: null,
-            email: null,
-            status: 'Lead Entrante',
-            canal: 'Meta Ads',
-            source: 'Facebook Lead Ad',
-            formulario: formId,
-            created_at: new Date().toISOString()
-          })
-          
-          if (error) {
-            console.error('Error inserting lead:', error)
-          } else {
-            console.log('Lead inserted successfully')
+          try {
+            // OBTENER DATOS REALES DEL LEAD DESDE META GRAPH API
+            const graphResponse = await fetch(
+              `https://graph.facebook.com/v25.0/${leadgenId}?access_token=${META_ACCESS_TOKEN}`
+            )
+            
+            if (!graphResponse.ok) {
+              console.error('Error fetching lead from Graph API:', await graphResponse.text())
+              continue
+            }
+            
+            const leadData = await graphResponse.json()
+            console.log('Lead data from Meta:', JSON.stringify(leadData))
+            
+            // Extraer campos del lead
+            const fieldData = leadData.field_data || []
+            let name = null
+            let phone = null
+            let email = null
+            
+            for (const field of fieldData) {
+              if (field.name === 'full_name' || field.name === 'first_name') {
+                name = field.values[0]
+              }
+              if (field.name === 'phone_number' || field.name === 'phone') {
+                phone = field.values[0]
+              }
+              if (field.name === 'email') {
+                email = field.values[0]
+              }
+            }
+            
+            // Insertar lead en Supabase
+            const { data, error } = await supabase.from('leads').insert({
+              name: name || 'Lead desde Meta',
+              phone: phone,
+              email: email,
+              status: 'Lead Entrante',
+              canal: 'Meta Ads',
+              source: 'Facebook Lead Ad',
+              formulario: formId,
+              created_at: new Date().toISOString()
+            }).select()
+            
+            if (error) {
+              console.error('Error inserting lead:', error)
+            } else {
+              console.log('Lead inserted successfully:', data)
+            }
+            
+          } catch (error) {
+            console.error('Error processing lead:', error)
           }
         }
       }
