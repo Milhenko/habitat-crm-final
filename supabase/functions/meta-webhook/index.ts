@@ -36,6 +36,7 @@ serve(async (req) => {
         if (change.field === 'leadgen') {
           const leadgenId = change.value.leadgen_id
           const formId = change.value.form_id
+          const adId = change.value.ad_id
           
           console.log(`Processing lead: ${leadgenId}`)
           
@@ -53,23 +54,35 @@ serve(async (req) => {
             const leadData = await graphResponse.json()
             console.log('Lead data from Meta:', JSON.stringify(leadData))
             
-            // Extraer campos del lead
+            // Extraer campos estándar y personalizados
             const fieldData = leadData.field_data || []
             let name = null
             let phone = null
             let email = null
+            const customFields: Record<string, any> = {}
             
             for (const field of fieldData) {
-              if (field.name === 'full_name' || field.name === 'first_name') {
-                name = field.values[0]
-              }
-              if (field.name === 'phone_number' || field.name === 'phone') {
-                phone = field.values[0]
-              }
-              if (field.name === 'email') {
-                email = field.values[0]
+              const fieldName = field.name
+              const fieldValue = field.values?.[0] || null
+              
+              // Campos estándar
+              if (fieldName === 'full_name' || fieldName === 'first_name') {
+                name = fieldValue
+              } else if (fieldName === 'phone_number' || fieldName === 'phone') {
+                phone = fieldValue
+              } else if (fieldName === 'email') {
+                email = fieldValue
+              } else {
+                // Cualquier otro campo va a custom_fields
+                customFields[fieldName] = fieldValue
               }
             }
+            
+            // Agregar metadata útil
+            customFields.lead_id = leadgenId
+            customFields.form_id = formId
+            customFields.ad_id = adId
+            customFields.created_time = leadData.created_time
             
             // Insertar lead en Supabase
             const { data, error } = await supabase.from('leads').insert({
@@ -80,6 +93,7 @@ serve(async (req) => {
               canal: 'Meta Ads',
               source: 'Facebook Lead Ad',
               formulario: formId,
+              custom_fields: customFields,
               created_at: new Date().toISOString()
             }).select()
             
