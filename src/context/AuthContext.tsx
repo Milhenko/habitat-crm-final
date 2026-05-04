@@ -23,29 +23,100 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const SESSION_KEY = "crm_last_activity";
+const SESSION_TIMEOUT = 48 * 60 * 60 * 1000;
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [users, setUsers] = useState<User[]>([]);
   const [user, setUser] = useState<User | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      const { data } = await supabase.from("users").select("*");
-      if (data && data.length > 0) {
-        const mapped: User[] = data.map((u: any) => ({
+    const init = async () => {
+      try {
+        const lastActivity = localStorage.getItem(SESSION_KEY);
+        if (lastActivity) {
+          const elapsed = Date.now() - parseInt(lastActivity);
+          if (elapsed > SESSION_TIMEOUT) {
+            await supabase.auth.signOut();
+            localStorage.removeItem(SESSION_KEY);
+            setLoading(false);
+            return;
+          }
+        }
+
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          localStorage.setItem(SESSION_KEY, Date.now().toString());
+          await loadProfile(session.user.id);
+        } else {
+          setLoading(false);
+        }
+      } catch (e) {
+        setLoading(false);
+      }
+    };
+
+    init();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user) {
+        localStorage.setItem(SESSION_KEY, Date.now().toString());
+        await loadProfile(session.user.id);
+      } else {
+        setUser(null);
+        setLoading(false);
+      }
+    });
+
+    const updateActivity = () => {
+      if (localStorage.getItem(SESSION_KEY)) {
+        localStorage.setItem(SESSION_KEY, Date.now().toString());
+      }
+    };
+    window.addEventListener("click", updateActivity);
+    window.addEventListener("keypress", updateActivity);
+
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener("click", updateActivity);
+      window.removeEventListener("keypress", updateActivity);
+    };
+  }, []);
+
+  const loadProfile = async (authId: string) => {
+    try {
+      const { data } = await supabase
+        .from("users")
+        .select("*")
+        .eq("id", authId)
+        .single();
+
+      if (data) {
+        setUser({
+          id: data.id,
+          name: data.name,
+          role: data.role as Role,
+          initials: data.initials,
+          email: data.email,
+        });
+      }
+
+      const { data: allUsers } = await supabase.from("users").select("*");
+      if (allUsers) {
+        setUsers(allUsers.map((u: any) => ({
           id: u.id,
           name: u.name,
           role: u.role as Role,
           initials: u.initials,
           email: u.email,
-        }));
-        setUsers(mapped);
-        setUser(mapped[0]);
+        })));
       }
-      setLoading(false);
-    };
-    fetchUsers();
-  }, []);
+    } catch (e) {
+      console.error("Error loading profile:", e);
+    }
+    setLoading(false);
+  };
 
   const setRole = (role: Role) => {
     const found = users.find((u) => u.role === role);
@@ -54,7 +125,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    localStorage.removeItem(SESSION_KEY);
     setUser(null);
+    window.location.href = "/login";
   };
 
   return (
