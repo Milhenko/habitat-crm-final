@@ -7,7 +7,7 @@ export type Role = "Super Administrador" | "Coordinador Comercial" | "Administra
 
 export interface User {
   id: string;
-  name: name: string;
+  name: string;
   role: Role;
   initials: string;
   email: string;
