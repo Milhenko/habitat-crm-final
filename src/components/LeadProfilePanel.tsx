@@ -19,6 +19,7 @@ interface Lead {
     assigned_at: string | null;
     reassigned_at: string | null;
     formulario: string | null;
+    custom_fields?: Record<string, any>;
 }
 
 interface LeadProfilePanelProps {
@@ -63,6 +64,16 @@ const ESTADO_COLORS: Record<string, string> = {
     "Descartados / En Pausa": "bg-red-100 text-red-700",
 };
 
+const formatFieldName = (key: string): string => {
+    return key
+        .replace(/_/g, ' ')
+        .replace(/([A-Z])/g, ' $1')
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ')
+        .trim();
+};
+
 export default function LeadProfilePanel({ lead, onClose, mode = "edit" }: LeadProfilePanelProps) {
     const { user } = useAuth();
     const isSuperAdmin = user?.role === "Super Administrador";
@@ -78,6 +89,7 @@ export default function LeadProfilePanel({ lead, onClose, mode = "edit" }: LeadP
     const [monto, setMonto] = useState("");
     const [guardandoMonto, setGuardandoMonto] = useState(false);
     const [actualizandoAsesor, setActualizandoAsesor] = useState(false);
+    const [expandedFormResponses, setExpandedFormResponses] = useState(true);
 
     // Estados para modo CREATE
     const [newName, setNewName] = useState("");
@@ -166,11 +178,9 @@ export default function LeadProfilePanel({ lead, onClose, mode = "edit" }: LeadP
 
         if (!error) {
             setEtapaActual(nuevaEtapa);
-            // Actualizar el objeto lead directamente para que se refleje al cerrar
             lead.status = nuevaEtapa;
             console.log("✅ Etapa actualizada correctamente a:", nuevaEtapa);
             
-            // Pequeño delay para feedback visual
             setTimeout(() => {
                 setActualizandoEtapa(false);
             }, 300);
@@ -188,7 +198,6 @@ export default function LeadProfilePanel({ lead, onClose, mode = "edit" }: LeadP
         const now = new Date().toISOString();
         const updates: any = { assigned_to_name: nuevoAsesor === "Sin asignar" ? null : nuevoAsesor };
 
-        // Lógica de fechas
         if (!lead.assigned_to_name || lead.assigned_to_name === "Sin asignar") {
             updates.assigned_at = now;
         } else if (nuevoAsesor !== lead.assigned_to_name) {
@@ -261,6 +270,10 @@ export default function LeadProfilePanel({ lead, onClose, mode = "edit" }: LeadP
 
     const toggleBloque = (idx: number) => setBloquesAbiertos(prev => ({ ...prev, [idx]: !prev[idx] }));
 
+    const hasFormResponses = lead?.custom_fields && Object.keys(lead.custom_fields).filter(key => 
+        !['lead_id', 'form_id', 'ad_id', 'created_time'].includes(key)
+    ).length > 0;
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
             <div className="bg-[#EBEAE6] rounded-2xl shadow-2xl w-full max-w-[1400px] max-h-[95vh] overflow-hidden flex flex-col">
@@ -288,196 +301,232 @@ export default function LeadProfilePanel({ lead, onClose, mode = "edit" }: LeadP
                     <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
 
                         {/* COLUMNA 1 */}
-                        <div className="bg-white rounded-xl shadow p-6 space-y-5">
-                            <h3 className="text-xs font-black text-[#1E2D40] uppercase tracking-widest border-b border-gray-100 pb-3">Información del Contacto</h3>
-                            <div className="space-y-4">
-                                <div>
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Nombre completo</p>
-                                    {mode === "create" ? (
-                                        <input
-                                            type="text"
-                                            className="w-full px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20"
-                                            placeholder="Nombre del cliente"
-                                            value={newName}
-                                            onChange={(e) => setNewName(e.target.value)}
-                                        />
-                                    ) : (
-                                        <p className="text-sm font-bold text-[#1A1A1A]">{lead.name || "—"}</p>
-                                    )}
-                                </div>
-                                <div>
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Teléfono</p>
-                                    {mode === "create" ? (
-                                        <input
-                                            type="tel"
-                                            className="w-full px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20"
-                                            placeholder="Ej: 0998887776"
-                                            value={newPhone}
-                                            onChange={(e) => setNewPhone(e.target.value)}
-                                        />
-                                    ) : lead.phone ? (
-                                        <a href={`tel:${lead.phone}`} className="flex items-center gap-2 text-sm font-bold text-[#1E2D40] hover:underline">
-                                            <div className="w-8 h-8 bg-[#1E2D40] rounded-lg flex items-center justify-center flex-shrink-0"><Phone className="w-4 h-4 text-white" /></div>
-                                            {lead.phone}
-                                        </a>
-                                    ) : (
-                                        <p className="text-sm text-gray-400">—</p>
-                                    )}
-                                </div>
-                                <div>
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Correo</p>
-                                    {mode === "create" ? (
-                                        <input
-                                            type="email"
-                                            className="w-full px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20"
-                                            placeholder="correo@ejemplo.com"
-                                            value={newEmail}
-                                            onChange={(e) => setNewEmail(e.target.value)}
-                                        />
-                                    ) : lead.email ? (
-                                        <a href={`mailto:${lead.email}`} className="flex items-center gap-2 text-sm font-bold text-[#1E2D40] hover:underline break-all">
-                                            <div className="w-8 h-8 bg-[#1E2D40] rounded-lg flex items-center justify-center flex-shrink-0"><Mail className="w-4 h-4 text-white" /></div>
-                                            {lead.email}
-                                        </a>
-                                    ) : (
-                                        <p className="text-sm text-gray-400">—</p>
-                                    )}
-                                </div>
-                                <div>
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Asesor Asignado</p>
-                                    {isSuperAdmin && mode === "create" ? (
-                                        <div className="relative">
-                                            <select
-                                                className="w-full px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20 appearance-none"
-                                                value={mode === "create" ? newAsesor : (lead.assigned_to_name || "Sin asignar")}
-                                                onChange={(e) => mode === "create" ? setNewAsesor(e.target.value) : handleCambiarAsesor(e.target.value)}
-                                                disabled={actualizandoAsesor || creando}
-                                            >
-                                                <option value="Sin asignar">Sin asignar</option>
-                                                <option value="Gastón Calderón">Gastón Calderón</option>
-                                                <option value="Milenko Surati">Milenko Surati</option>
-                                                <option value="José Morán">José Morán</option>
-                                                <option value="Sebastián Jaramillo">Sebastián Jaramillo</option>
-                                                <option value="Rafaela Velásquez">Rafaela Velásquez</option>
-                                            </select>
-                                            {(actualizandoAsesor || creando) && <div className="absolute right-3 top-2.5 w-4 h-4 border-2 border-[#1E2D40] border-t-transparent rounded-full animate-spin" />}
-                                        </div>
-                                    ) : mode === "create" && !isSuperAdmin ? (
-                                        <div className="flex items-center gap-2 text-sm text-[#1A1A1A] px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl">
-                                            <User className="w-4 h-4 text-gray-400" />{user?.name || "Asesor"}
-                                        </div>
-                                    ) : (
-                                        <div className="flex items-center gap-2 text-sm text-[#1A1A1A]">
-                                            <User className="w-4 h-4 text-gray-400" />{lead.assigned_to_name || lead.source || "Sin asignar"}
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* ETAPA (Sólo en modo edit) */}
-                                {mode === "edit" && (
+                        <div className="space-y-5">
+                            <div className="bg-white rounded-xl shadow p-6 space-y-5">
+                                <h3 className="text-xs font-black text-[#1E2D40] uppercase tracking-widest border-b border-gray-100 pb-3">Información del Contacto</h3>
+                                <div className="space-y-4">
                                     <div>
-                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Etapa de Negociación</p>
-                                        <div className="relative">
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Nombre completo</p>
+                                        {mode === "create" ? (
+                                            <input
+                                                type="text"
+                                                className="w-full px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20"
+                                                placeholder="Nombre del cliente"
+                                                value={newName}
+                                                onChange={(e) => setNewName(e.target.value)}
+                                            />
+                                        ) : (
+                                            <p className="text-sm font-bold text-[#1A1A1A]">{lead.name || "—"}</p>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Teléfono</p>
+                                        {mode === "create" ? (
+                                            <input
+                                                type="tel"
+                                                className="w-full px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20"
+                                                placeholder="Ej: 0998887776"
+                                                value={newPhone}
+                                                onChange={(e) => setNewPhone(e.target.value)}
+                                            />
+                                        ) : lead.phone ? (
+                                            <a href={`tel:${lead.phone}`} className="flex items-center gap-2 text-sm font-bold text-[#1E2D40] hover:underline">
+                                                <div className="w-8 h-8 bg-[#1E2D40] rounded-lg flex items-center justify-center flex-shrink-0"><Phone className="w-4 h-4 text-white" /></div>
+                                                {lead.phone}
+                                            </a>
+                                        ) : (
+                                            <p className="text-sm text-gray-400">—</p>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Correo</p>
+                                        {mode === "create" ? (
+                                            <input
+                                                type="email"
+                                                className="w-full px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20"
+                                                placeholder="correo@ejemplo.com"
+                                                value={newEmail}
+                                                onChange={(e) => setNewEmail(e.target.value)}
+                                            />
+                                        ) : lead.email ? (
+                                            <a href={`mailto:${lead.email}`} className="flex items-center gap-2 text-sm font-bold text-[#1E2D40] hover:underline break-all">
+                                                <div className="w-8 h-8 bg-[#1E2D40] rounded-lg flex items-center justify-center flex-shrink-0"><Mail className="w-4 h-4 text-white" /></div>
+                                                {lead.email}
+                                            </a>
+                                        ) : (
+                                            <p className="text-sm text-gray-400">—</p>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Asesor Asignado</p>
+                                        {isSuperAdmin && mode === "create" ? (
+                                            <div className="relative">
+                                                <select
+                                                    className="w-full px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20 appearance-none"
+                                                    value={mode === "create" ? newAsesor : (lead.assigned_to_name || "Sin asignar")}
+                                                    onChange={(e) => mode === "create" ? setNewAsesor(e.target.value) : handleCambiarAsesor(e.target.value)}
+                                                    disabled={actualizandoAsesor || creando}
+                                                >
+                                                    <option value="Sin asignar">Sin asignar</option>
+                                                    <option value="Gastón Calderón">Gastón Calderón</option>
+                                                    <option value="Milenko Surati">Milenko Surati</option>
+                                                    <option value="José Morán">José Morán</option>
+                                                    <option value="Sebastián Jaramillo">Sebastián Jaramillo</option>
+                                                    <option value="Rafaela Velásquez">Rafaela Velásquez</option>
+                                                </select>
+                                                {(actualizandoAsesor || creando) && <div className="absolute right-3 top-2.5 w-4 h-4 border-2 border-[#1E2D40] border-t-transparent rounded-full animate-spin" />}
+                                            </div>
+                                        ) : mode === "create" && !isSuperAdmin ? (
+                                            <div className="flex items-center gap-2 text-sm text-[#1A1A1A] px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl">
+                                                <User className="w-4 h-4 text-gray-400" />{user?.name || "Asesor"}
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center gap-2 text-sm text-[#1A1A1A]">
+                                                <User className="w-4 h-4 text-gray-400" />{lead.assigned_to_name || lead.source || "Sin asignar"}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {mode === "edit" && (
+                                        <div>
+                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Etapa de Negociación</p>
+                                            <div className="relative">
+                                                <select
+                                                    className="w-full px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20"
+                                                    value={etapaActual}
+                                                    onChange={(e) => handleCambiarEtapa(e.target.value)}
+                                                    disabled={actualizandoEtapa}
+                                                >
+                                                    {ETAPAS.map(e => <option key={e} value={e}>{e}</option>)}
+                                                </select>
+                                                {actualizandoEtapa && <div className="absolute right-3 top-2.5 w-4 h-4 border-2 border-[#1E2D40] border-t-transparent rounded-full animate-spin" />}
+                                            </div>
+                                            <p className="text-[10px] text-gray-400 mt-1">Se actualiza en el pipeline automáticamente</p>
+                                        </div>
+                                    )}
+
+                                    {mode === "edit" && (
+                                        <div>
+                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Monto de Negociación</p>
+                                            <div className="flex gap-2">
+                                                <div className="relative flex-1">
+                                                    <span className="absolute left-3 top-2 text-gray-400 text-sm font-bold">$</span>
+                                                    <input
+                                                        type="number"
+                                                        className="w-full pl-7 pr-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20"
+                                                        placeholder="0"
+                                                        value={monto}
+                                                        onChange={(e) => setMonto(e.target.value)}
+                                                        onBlur={handleGuardarMonto}
+                                                    />
+                                                </div>
+                                                <button
+                                                    onClick={handleGuardarMonto}
+                                                    disabled={guardandoMonto}
+                                                    className="px-3 py-2 bg-[#1E2D40] text-white rounded-lg text-xs font-bold hover:bg-[#1E2D40]/90 transition-all"
+                                                >
+                                                    {guardandoMonto ? "..." : <DollarSign className="w-4 h-4" />}
+                                                </button>
+                                            </div>
+                                            <p className="text-[10px] text-gray-400 mt-1">Valor estimado en USD</p>
+                                        </div>
+                                    )}
+
+                                    <div>
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Medio de Contacto (Canal)</p>
+                                        {mode === "create" ? (
                                             <select
                                                 className="w-full px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20"
-                                                value={etapaActual}
-                                                onChange={(e) => handleCambiarEtapa(e.target.value)}
-                                                disabled={actualizandoEtapa}
+                                                value={newCanal}
+                                                onChange={(e) => setNewCanal(e.target.value)}
                                             >
-                                                {ETAPAS.map(e => <option key={e} value={e}>{e}</option>)}
+                                                <option value="WhatsApp Directo">WhatsApp Directo</option>
+                                                <option value="Referido">Referido</option>
+                                                <option value="Llamada Telefónica">Llamada Telefónica</option>
+                                                <option value="Evento/Feria">Evento/Feria</option>
+                                                <option value="Walk-in">Walk-in</option>
+                                                <option value="Web">Web</option>
                                             </select>
-                                            {actualizandoEtapa && <div className="absolute right-3 top-2.5 w-4 h-4 border-2 border-[#1E2D40] border-t-transparent rounded-full animate-spin" />}
-                                        </div>
-                                        <p className="text-[10px] text-gray-400 mt-1">Se actualiza en el pipeline automáticamente</p>
+                                        ) : (
+                                            <span className="text-[10px] font-bold px-3 py-1.5 bg-[#1E2D40]/10 text-[#1E2D40] rounded-full">{lead.canal || "—"}</span>
+                                        )}
                                     </div>
-                                )}
-
-                                {/* MONTO (Sólo en modo edit) */}
-                                {mode === "edit" && (
-                                    <div>
-                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Monto de Negociación</p>
-                                        <div className="flex gap-2">
-                                            <div className="relative flex-1">
-                                                <span className="absolute left-3 top-2 text-gray-400 text-sm font-bold">$</span>
-                                                <input
-                                                    type="number"
-                                                    className="w-full pl-7 pr-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20"
-                                                    placeholder="0"
-                                                    value={monto}
-                                                    onChange={(e) => setMonto(e.target.value)}
-                                                    onBlur={handleGuardarMonto}
-                                                />
+                                    {mode === "edit" && (
+                                        <div>
+                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Fuente</p>
+                                            <div className="flex items-center gap-2 text-sm text-[#1A1A1A]">
+                                                <Building2 className="w-4 h-4 text-gray-400" />{lead.source || "—"}
                                             </div>
+                                        </div>
+                                    )}
+
+                                    {mode === "edit" ? (
+                                        <div className="pt-3 border-t border-gray-100 grid grid-cols-2 gap-3 text-xs text-gray-500">
+                                            <div>
+                                                <p className="font-black text-[10px] uppercase tracking-widest text-gray-400 mb-0.5">Creado</p>
+                                                <p>{lead.created_at ? new Date(lead.created_at).toLocaleDateString("es-EC") : "—"}</p>
+                                            </div>
+                                            <div>
+                                                <p className="font-black text-[10px] uppercase tracking-widest text-gray-400 mb-0.5">Asignado</p>
+                                                <p>{lead.assigned_at ? new Date(lead.assigned_at).toLocaleDateString("es-EC") : "—"}</p>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="pt-6">
                                             <button
-                                                onClick={handleGuardarMonto}
-                                                disabled={guardandoMonto}
-                                                className="px-3 py-2 bg-[#1E2D40] text-white rounded-lg text-xs font-bold hover:bg-[#1E2D40]/90 transition-all"
+                                                onClick={handleCrearContacto}
+                                                disabled={creando}
+                                                className="w-full py-4 bg-green-600 hover:bg-green-700 text-white font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-green-200 transition-all flex items-center justify-center gap-3 disabled:bg-gray-300 disabled:shadow-none"
                                             >
-                                                {guardandoMonto ? "..." : <DollarSign className="w-4 h-4" />}
+                                                {creando ? (
+                                                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                                ) : (
+                                                    <>
+                                                        <User className="w-5 h-5" />
+                                                        Crear Contacto
+                                                    </>
+                                                )}
                                             </button>
                                         </div>
-                                        <p className="text-[10px] text-gray-400 mt-1">Valor estimado en USD</p>
-                                    </div>
-                                )}
-
-                                <div>
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Medio de Contacto (Canal)</p>
-                                    {mode === "create" ? (
-                                        <select
-                                            className="w-full px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20"
-                                            value={newCanal}
-                                            onChange={(e) => setNewCanal(e.target.value)}
-                                        >
-                                            <option value="WhatsApp Directo">WhatsApp Directo</option>
-                                            <option value="Referido">Referido</option>
-                                            <option value="Llamada Telefónica">Llamada Telefónica</option>
-                                            <option value="Evento/Feria">Evento/Feria</option>
-                                            <option value="Walk-in">Walk-in</option>
-                                            <option value="Web">Web</option>
-                                        </select>
-                                    ) : (
-                                        <span className="text-[10px] font-bold px-3 py-1.5 bg-[#1E2D40]/10 text-[#1E2D40] rounded-full">{lead.canal || "—"}</span>
                                     )}
                                 </div>
-                                {mode === "edit" && (
-                                    <div>
-                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Fuente</p>
-                                        <div className="flex items-center gap-2 text-sm text-[#1A1A1A]">
-                                            <Building2 className="w-4 h-4 text-gray-400" />{lead.source || "—"}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {mode === "edit" ? (
-                                    <div className="pt-3 border-t border-gray-100 grid grid-cols-2 gap-3 text-xs text-gray-500">
-                                        <div>
-                                            <p className="font-black text-[10px] uppercase tracking-widest text-gray-400 mb-0.5">Creado</p>
-                                            <p>{lead.created_at ? new Date(lead.created_at).toLocaleDateString("es-EC") : "—"}</p>
-                                        </div>
-                                        <div>
-                                            <p className="font-black text-[10px] uppercase tracking-widest text-gray-400 mb-0.5">Asignado</p>
-                                            <p>{lead.assigned_at ? new Date(lead.assigned_at).toLocaleDateString("es-EC") : "—"}</p>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="pt-6">
-                                        <button
-                                            onClick={handleCrearContacto}
-                                            disabled={creando}
-                                            className="w-full py-4 bg-green-600 hover:bg-green-700 text-white font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-green-200 transition-all flex items-center justify-center gap-3 disabled:bg-gray-300 disabled:shadow-none"
-                                        >
-                                            {creando ? (
-                                                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                            ) : (
-                                                <>
-                                                    <User className="w-5 h-5" />
-                                                    Crear Contacto
-                                                </>
-                                            )}
-                                        </button>
-                                    </div>
-                                )}
                             </div>
+
+                            {/* Respuestas del Formulario de Meta Ads */}
+                            {mode === "edit" && hasFormResponses && (
+                                <div className="bg-white rounded-xl shadow overflow-hidden">
+                                    <button
+                                        onClick={() => setExpandedFormResponses(!expandedFormResponses)}
+                                        className="w-full px-6 py-4 flex items-center justify-between bg-gradient-to-r from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 transition-colors"
+                                    >
+                                        <h3 className="text-xs font-black text-[#1E2D40] uppercase tracking-widest">
+                                            Respuestas del Formulario
+                                        </h3>
+                                        {expandedFormResponses ? (
+                                            <ChevronUp className="w-5 h-5 text-gray-600" />
+                                        ) : (
+                                            <ChevronDown className="w-5 h-5 text-gray-600" />
+                                        )}
+                                    </button>
+
+                                    {expandedFormResponses && (
+                                        <div className="p-6 space-y-4">
+                                            {Object.entries(lead.custom_fields || {})
+                                                .filter(([key]) => !['lead_id', 'form_id', 'ad_id', 'created_time'].includes(key))
+                                                .map(([key, value]) => (
+                                                    <div key={key} className="border-b border-gray-100 pb-3 last:border-b-0">
+                                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">
+                                                            {formatFieldName(key)}
+                                                        </p>
+                                                        <p className="text-sm text-[#1A1A1A]">
+                                                            {value?.toString() || "—"}
+                                                        </p>
+                                                    </div>
+                                                ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
                         {/* COLUMNA 2: Guión */}
