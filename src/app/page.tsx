@@ -1,21 +1,26 @@
 "use client";
 
 import { useEffect } from "react";
-import { Building2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 
-export default function Home() {
+export default function HomePage() {
+  const router = useRouter();
+  const { user, loading } = useAuth();
+
   useEffect(() => {
-    window.location.href = "/login";
-  }, []);
+    if (!loading) {
+      if (user) {
+        router.replace("/contactos");
+      } else {
+        router.replace("/login");
+      }
+    }
+  }, [user, loading, router]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#EBEAE6]">
-      <div className="flex flex-col items-center gap-4">
-        <div className="w-16 h-16 bg-[#1E2D40] rounded-2xl flex items-center justify-center shadow-lg animate-pulse">
-          <Building2 className="text-white w-8 h-8" />
-        </div>
-        <p className="text-[#1A1A1A]/50 font-medium">Cargando CRM Habitat...</p>
-      </div>
+    <div className="min-h-screen flex items-center justify-center bg-[#1E2D40]">
+      <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin" />
     </div>
   );
 }
