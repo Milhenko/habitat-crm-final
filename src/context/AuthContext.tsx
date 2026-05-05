@@ -24,7 +24,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const SESSION_KEY = "crm_last_activity";
-const SESSION_TIMEOUT = 48 * 60 * 60 * 1000;
+const SESSION_TIMEOUT = 8 * 60 * 60 * 1000; // 8 horas en milisegundos
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -34,10 +34,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const init = async () => {
       try {
+        // Verificar timeout de inactividad
         const lastActivity = localStorage.getItem(SESSION_KEY);
         if (lastActivity) {
           const elapsed = Date.now() - parseInt(lastActivity);
           if (elapsed > SESSION_TIMEOUT) {
+            console.log("⏱️ Sesión expirada por inactividad (8 horas)");
             await supabase.auth.signOut();
             localStorage.removeItem(SESSION_KEY);
             setLoading(false);
@@ -45,7 +47,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         }
 
+        // Verificar sesión actual
         const { data: { session } } = await supabase.auth.getSession();
+        
         if (session?.user) {
           localStorage.setItem(SESSION_KEY, Date.now().toString());
           await loadProfile(session.user.id);
@@ -53,12 +57,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setLoading(false);
         }
       } catch (e) {
+        console.error("Error en init:", e);
         setLoading(false);
       }
     };
 
     init();
 
+    // Listener de cambios de auth
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
         localStorage.setItem(SESSION_KEY, Date.now().toString());
@@ -69,18 +75,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
+    // Actualizar timestamp de actividad
     const updateActivity = () => {
       if (localStorage.getItem(SESSION_KEY)) {
         localStorage.setItem(SESSION_KEY, Date.now().toString());
       }
     };
+
+    // Eventos de actividad
     window.addEventListener("click", updateActivity);
     window.addEventListener("keypress", updateActivity);
+    window.addEventListener("mousemove", updateActivity);
+    window.addEventListener("scroll", updateActivity);
+
+    // Verificar timeout cada 5 minutos
+    const checkTimeout = setInterval(() => {
+      const lastActivity = localStorage.getItem(SESSION_KEY);
+      if (lastActivity) {
+        const elapsed = Date.now() - parseInt(lastActivity);
+        if (elapsed > SESSION_TIMEOUT) {
+          console.log("⏱️ Sesión expirada por inactividad (8 horas)");
+          supabase.auth.signOut();
+          localStorage.removeItem(SESSION_KEY);
+          window.location.href = "/login";
+        }
+      }
+    }, 5 * 60 * 1000); // Cada 5 minutos
 
     return () => {
       subscription.unsubscribe();
       window.removeEventListener("click", updateActivity);
       window.removeEventListener("keypress", updateActivity);
+      window.removeEventListener("mousemove", updateActivity);
+      window.removeEventListener("scroll", updateActivity);
+      clearInterval(checkTimeout);
     };
   }, []);
 
