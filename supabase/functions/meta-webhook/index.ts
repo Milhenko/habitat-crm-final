@@ -37,9 +37,9 @@ serve(async (req) => {
           console.log(`Processing lead: ${leadgenId}`)
           
           try {
-            // Obtener datos del lead
+            // Obtener datos del lead CON field_data
             const graphResponse = await fetch(
-              `https://graph.facebook.com/v25.0/${leadgenId}?access_token=${META_ACCESS_TOKEN}`
+              `https://graph.facebook.com/v25.0/${leadgenId}?fields=id,created_time,field_data&access_token=${META_ACCESS_TOKEN}`
             )
             
             if (!graphResponse.ok) {
@@ -48,6 +48,7 @@ serve(async (req) => {
             }
             
             const leadData = await graphResponse.json()
+            console.log('Lead data from Graph API:', JSON.stringify(leadData))
             
             // Obtener nombre del formulario
             let nombreFormulario = null
@@ -82,21 +83,21 @@ serve(async (req) => {
               } else if (fieldName === 'email') {
                 email = fieldValue
               } else {
+                // Guardar TODAS las demás respuestas
                 customFields[fieldName] = fieldValue
               }
             }
             
+            // Agregar metadata
             customFields.lead_id = leadgenId
             customFields.form_id = formId
             customFields.ad_id = adId
             customFields.created_time = leadData.created_time
             
-            // Determinar canal basado en page_id
+            console.log('Custom fields to save:', JSON.stringify(customFields))
+            
+            // Determinar canal
             let canal = 'Meta Ads'
-            if (pageId) {
-              // Puedes agregar lógica aquí para diferenciar Habitat vs Etisa
-              canal = 'Meta Ads'
-            }
             
             const { data, error } = await supabase.from('leads').insert({
               name: name || 'Lead desde Meta',
@@ -114,7 +115,7 @@ serve(async (req) => {
             if (error) {
               console.error('Error inserting lead:', error)
             } else {
-              console.log('Lead inserted:', data)
+              console.log('Lead inserted successfully:', data)
             }
             
           } catch (error) {
