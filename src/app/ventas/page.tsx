@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
-import { Phone, User, DollarSign, Clock, Search } from "lucide-react";
+import { Phone, User, DollarSign, Clock, Search, Layers } from "lucide-react";
 import GlobalHeader from "@/components/GlobalHeader";
 import LeadProfilePanel from "@/components/LeadProfilePanel";
 
@@ -18,8 +18,6 @@ const COLUMNAS = [
     { id: "Cierre Ganado", color: "border-green-400", badge: "bg-green-100 text-green-700", alerta: false },
     { id: "Descartados / En Pausa", color: "border-red-400", badge: "bg-red-100 text-red-700", alerta: false },
 ];
-
-const CARDS_PER_COLUMN_STEP = 20;
 
 interface Lead {
     id: string;
@@ -43,13 +41,11 @@ export default function VentasPage() {
     const [leads, setLeads] = useState<Lead[]>([]);
     const [loading, setLoading] = useState(true);
     const [draggingId, setDraggingId] = useState<string | null>(null);
-    const [visibleCards, setVisibleCards] = useState<Record<string, number>>({})
-const getVisible = (col: string) => visibleCards[col] || CARDS_PER_COLUMN_STEP
-const loadMore = (col: string) => setVisibleCards(prev => ({ ...prev, [col]: (prev[col] || CARDS_PER_COLUMN_STEP) + CARDS_PER_COLUMN_STEP }))
     const [leadSeleccionado, setLeadSeleccionado] = useState<Lead | null>(null);
     const [busqueda, setBusqueda] = useState("");
     const [filtroEstado, setFiltroEstado] = useState("");
     const [filtroAsesor, setFiltroAsesor] = useState("");
+    const [limiteGlobal, setLimiteGlobal] = useState<number | "todos">(20);
 
     const isAsesor = user?.role === "Asesor";
     const isSuperAdmin = user?.role === "Super Administrador";
@@ -59,14 +55,13 @@ const loadMore = (col: string) => setVisibleCards(prev => ({ ...prev, [col]: (pr
             fetchLeads();
             checkReactivaciones();
 
-            // Suscripción Realtime para mantener el Kanban sincronizado
             const channel = supabase
                 .channel('kanban-realtime')
                 .on('postgres_changes', 
                     { event: '*', schema: 'public', table: 'leads' }, 
                     () => {
                         console.log('🔄 Cambio detectado en Supabase, refrescando Kanban...');
-                        fetchLeads(true); // Refresco silencioso
+                        fetchLeads(true);
                     }
                 )
                 .subscribe();
@@ -150,7 +145,10 @@ const loadMore = (col: string) => setVisibleCards(prev => ({ ...prev, [col]: (pr
 
     const getLeadsByColumna = (columna: string) => {
         const colLeads = leadsFiltrados.filter(l => l.status === columna);
-        return colLeads.slice(0, CARDS_PER_COLUMN);
+        if (limiteGlobal === "todos") {
+            return colLeads;
+        }
+        return colLeads.slice(0, limiteGlobal);
     };
 
     const getTotalByColumna = (columna: string) => {
@@ -163,9 +161,9 @@ const loadMore = (col: string) => setVisibleCards(prev => ({ ...prev, [col]: (pr
     };
 
     const canDragLead = (lead: Lead) => {
-        if (isSuperAdmin) return true; // Super Admins pueden mover CUALQUIER lead
-        if (!isAsesor) return true; // Otros admins también pueden
-        return lead.assigned_to_name === user?.name; // Asesores solo sus propios leads
+        if (isSuperAdmin) return true;
+        if (!isAsesor) return true;
+        return lead.assigned_to_name === user?.name;
     };
 
     const handleDragStart = (e: React.DragEvent, leadId: string) => {
@@ -248,6 +246,22 @@ const loadMore = (col: string) => setVisibleCards(prev => ({ ...prev, [col]: (pr
                                     className="w-full pl-10 pr-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20"
                                 />
                             </div>
+                            
+                            {/* NUEVO: Selector de cantidad */}
+                            <div className="relative">
+                                <Layers className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#1A1A1A]/30" />
+                                <select
+                                    value={limiteGlobal}
+                                    onChange={(e) => setLimiteGlobal(e.target.value === "todos" ? "todos" : parseInt(e.target.value))}
+                                    className="pl-10 pr-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20 font-bold"
+                                >
+                                    <option value={20}>20 por columna</option>
+                                    <option value={50}>50 por columna</option>
+                                    <option value={100}>100 por columna</option>
+                                    <option value="todos">Ver todos</option>
+                                </select>
+                            </div>
+
                             <select
                                 value={filtroEstado}
                                 onChange={(e) => setFiltroEstado(e.target.value)}
@@ -281,9 +295,9 @@ const loadMore = (col: string) => setVisibleCards(prev => ({ ...prev, [col]: (pr
             <div className="overflow-x-auto pb-8 px-6">
                 <div className="flex gap-4" style={{ minWidth: `${COLUMNAS.length * 300}px` }}>
                     {COLUMNAS.map((col) => {
-                        const colLeads = leadsFiltrados.filter(l => l.status === col.id).slice(0, getVisible(col.id));
-const total = getTotalByColumna(col.id);
-const hasMore = total > getVisible(col.id);
+                        const colLeads = getLeadsByColumna(col.id);
+                        const total = getTotalByColumna(col.id);
+                        const showing = colLeads.length;
 
                         return (
                             <div
@@ -299,7 +313,7 @@ const hasMore = total > getVisible(col.id);
                                             {col.id}
                                         </span>
                                         <span className="text-xs font-black text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-                                            {total}
+                                            {showing}/{total}
                                         </span>
                                     </div>
                                     {col.alerta && (
@@ -379,15 +393,6 @@ const hasMore = total > getVisible(col.id);
                                     {colLeads.length === 0 && (
                                         <div className="text-center py-8 text-gray-300 text-xs">Sin leads aquí</div>
                                     )}
-
-                                    {hasMore && (
-                                        <button
-    onClick={() => loadMore(col.id)}
-    className="w-full py-3 text-xs font-black text-[#1E2D40] hover:bg-[#1E2D40]/5 rounded-xl transition-colors border border-[#1E2D40]/10 mt-1"
-  >
-    Ver 20 más ({total - getVisible(col.id)} restantes)
-  </button>
-                                    )}
                                 </div>
                             </div>
                         );
@@ -400,7 +405,7 @@ const hasMore = total > getVisible(col.id);
                     lead={leadSeleccionado}
                     onClose={() => {
                         setLeadSeleccionado(null);
-                        fetchLeads(true); // Refresco silencioso al cerrar el panel
+                        fetchLeads(true);
                     }}
                 />
             )}
