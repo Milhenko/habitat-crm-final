@@ -506,9 +506,25 @@ export default function CaptacionPage() {
                     </Select>
                   </div>
                   <div>
-                    <Label>Zona / Sector</Label>
-                    <Input value={form.zone ?? ''} onChange={v => f('zone', v)} placeholder="Ej: Samborondón" />
-                  </div>
+                   <div>
+  <Label>Zona / Sector</Label>
+  <Select value={form.zone ?? ''} onChange={v => f('zone', v)}>
+    <option value="">Seleccionar zona...</option>
+    {Object.entries(ZONAS).map(([ciudad, macrosectores]) => (
+      <optgroup key={ciudad} label={ciudad}>
+        {Object.entries(macrosectores).map(([macro, urbs]) => (
+          <optgroup key={`${ciudad}-${macro}`} label={`  ${macro}`}>
+            {urbs.map(urb => (
+              <option key={`${ciudad}-${macro}-${urb}`} value={`${ciudad} - ${macro} - ${urb}`}>
+                {'    '}{urb}
+              </option>
+            ))}
+          </optgroup>
+        ))}
+      </optgroup>
+    ))}
+  </Select>
+</div>
                   <div className="col-span-2">
                     <Label>Dirección *</Label>
                     <Input value={form.address ?? ''} onChange={v => f('address', v)} placeholder="Dirección completa" />
