@@ -1,5 +1,6 @@
 "use client";
 
+import ProtectedRoute from "@/components/ProtectedRoute";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
@@ -36,7 +37,7 @@ interface Lead {
     reassigned_at: string | null;
 }
 
-export default function VentasPage() {
+function VentasContent() {
     const { user, loading: authLoading } = useAuth();
     const [leads, setLeads] = useState<Lead[]>([]);
     const [loading, setLoading] = useState(true);
@@ -247,7 +248,6 @@ export default function VentasPage() {
                                 />
                             </div>
                             
-                            {/* NUEVO: Selector de cantidad */}
                             <div className="relative">
                                 <Layers className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#1A1A1A]/30" />
                                 <select
@@ -410,5 +410,13 @@ export default function VentasPage() {
                 />
             )}
         </div>
+    );
+}
+
+export default function VentasPage() {
+    return (
+        <ProtectedRoute>
+            <VentasContent />
+        </ProtectedRoute>
     );
 }
