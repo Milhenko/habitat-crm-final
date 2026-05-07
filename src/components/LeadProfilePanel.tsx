@@ -147,12 +147,11 @@ export default function LeadProfilePanel({ lead, onClose, mode = "edit" }: LeadP
 
     const fetchNotas = async () => {
         if (!lead) return;
-        const { data } = await supabase
-            .from("lead_notes")
-            .select("*")
-            .eq("lead_id", lead.id)
-            .in("tipo", ["llamada", "nota", "guion"])
-            .order("created_at", { ascending: false });
+      const { data } = await supabase
+    .from("lead_notes")
+    .select("*")
+    .eq("lead_id", lead.id)
+    .order("created_at", { ascending: false });
         if (data) setHistorial(data);
     };
 
