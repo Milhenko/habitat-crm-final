@@ -56,20 +56,21 @@ function VentasContent() {
             fetchLeads();
             checkReactivaciones();
 
-            const channel = supabase
-                .channel('kanban-realtime')
-                .on('postgres_changes', 
-                    { event: '*', schema: 'public', table: 'leads' }, 
-                    () => {
-                        console.log('🔄 Cambio detectado en Supabase, refrescando Kanban...');
-                        fetchLeads(true);
-                    }
-                )
-                .subscribe();
+            // DESACTIVADO TEMPORALMENTE - Causa congelamiento con muchos leads
+            // const channel = supabase
+            //     .channel('kanban-realtime')
+            //     .on('postgres_changes', 
+            //         { event: '*', schema: 'public', table: 'leads' }, 
+            //         () => {
+            //             console.log('🔄 Cambio detectado en Supabase, refrescando Kanban...');
+            //             fetchLeads(true);
+            //         }
+            //     )
+            //     .subscribe();
 
-            return () => {
-                supabase.removeChannel(channel);
-            };
+            // return () => {
+            //     supabase.removeChannel(channel);
+            // };
         }
     }, [user, authLoading]);
 
@@ -80,7 +81,8 @@ function VentasContent() {
             let query = supabase
                 .from("leads")
                 .select("id, name, phone, status, canal, assigned_to_name, monto_negociacion, fecha_recontacto, created_at, email")
-                .order("created_at", { ascending: false });
+                .order("created_at", { ascending: false })
+                .limit(200);
 
             if (isAsesor && user) {
                 query = query.eq("assigned_to_name", user.name);
