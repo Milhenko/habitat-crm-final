@@ -506,7 +506,6 @@ export default function CaptacionPage() {
                     </Select>
                   </div>
                   <div>
-                   <div>
   <Label>Zona / Sector</Label>
   <Select value={form.zone ?? ''} onChange={v => f('zone', v)}>
     <option value="">Seleccionar zona...</option>
