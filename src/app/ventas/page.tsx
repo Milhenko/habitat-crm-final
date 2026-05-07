@@ -82,7 +82,7 @@ function VentasContent() {
                 .from("leads")
                 .select("id, name, phone, status, canal, assigned_to_name, monto_negociacion, fecha_recontacto, created_at, email")
                 .order("created_at", { ascending: false })
-                .limit(200);
+                .limit(100);
 
             if (isAsesor && user) {
                 query = query.eq("assigned_to_name", user.name);
