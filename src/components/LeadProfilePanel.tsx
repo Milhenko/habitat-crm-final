@@ -91,7 +91,6 @@ export default function LeadProfilePanel({ lead, onClose, mode = "edit" }: LeadP
     const [actualizandoAsesor, setActualizandoAsesor] = useState(false);
     const [expandedFormResponses, setExpandedFormResponses] = useState(true);
 
-    // Estados para modo CREATE
     const [newName, setNewName] = useState("");
     const [newPhone, setNewPhone] = useState("");
     const [newEmail, setNewEmail] = useState("");
@@ -127,6 +126,7 @@ export default function LeadProfilePanel({ lead, onClose, mode = "edit" }: LeadP
 
         if (!error) {
             console.log("✅ Contacto creado correctamente");
+            await new Promise(resolve => setTimeout(resolve, 500));
             onClose();
         } else {
             console.error("❌ Error al crear contacto:", error);
@@ -180,15 +180,12 @@ export default function LeadProfilePanel({ lead, onClose, mode = "edit" }: LeadP
             setEtapaActual(nuevaEtapa);
             lead.status = nuevaEtapa;
             console.log("✅ Etapa actualizada correctamente a:", nuevaEtapa);
-            
-            setTimeout(() => {
-                setActualizandoEtapa(false);
-            }, 300);
+            await new Promise(resolve => setTimeout(resolve, 500));
         } else {
             console.error("❌ Error al actualizar etapa:", error);
             alert("Error al actualizar la etapa: " + error.message);
-            setActualizandoEtapa(false);
         }
+        setActualizandoEtapa(false);
     };
 
     const handleCambiarAsesor = async (nuevoAsesor: string) => {
@@ -210,6 +207,7 @@ export default function LeadProfilePanel({ lead, onClose, mode = "edit" }: LeadP
             lead.assigned_to_name = updates.assigned_to_name;
             if (updates.assigned_at) lead.assigned_at = updates.assigned_at;
             if (updates.reassigned_at) lead.reassigned_at = updates.reassigned_at;
+            await new Promise(resolve => setTimeout(resolve, 500));
         }
         setActualizandoAsesor(false);
     };
@@ -218,6 +216,7 @@ export default function LeadProfilePanel({ lead, onClose, mode = "edit" }: LeadP
         if (!lead || !monto) return;
         setGuardandoMonto(true);
         await supabase.from("leads").update({ monto_negociacion: parseFloat(monto) }).eq("id", lead.id);
+        await new Promise(resolve => setTimeout(resolve, 500));
         setGuardandoMonto(false);
     };
 
@@ -244,6 +243,7 @@ export default function LeadProfilePanel({ lead, onClose, mode = "edit" }: LeadP
             await supabase.from("lead_notes").delete().eq("lead_id", lead.id).eq("tipo", "guion");
             await supabase.from("lead_notes").insert(inserts);
         }
+        await new Promise(resolve => setTimeout(resolve, 500));
         setGuardando(false);
         setGuardadoOk(true);
         setTimeout(() => setGuardadoOk(false), 2000);
@@ -264,6 +264,7 @@ export default function LeadProfilePanel({ lead, onClose, mode = "edit" }: LeadP
             setHistorial(prev => [data, ...prev]);
             setNuevaNota("");
         }
+        await new Promise(resolve => setTimeout(resolve, 500));
     };
 
     if (!lead && mode !== "create") return null;
@@ -492,7 +493,6 @@ export default function LeadProfilePanel({ lead, onClose, mode = "edit" }: LeadP
                                 </div>
                             </div>
 
-                            {/* Respuestas del Formulario de Meta Ads */}
                             {mode === "edit" && hasFormResponses && (
                                 <div className="bg-white rounded-xl shadow overflow-hidden">
                                     <button
@@ -560,7 +560,7 @@ export default function LeadProfilePanel({ lead, onClose, mode = "edit" }: LeadP
                             </div>
                             <div className="mt-4 pt-4 border-t border-gray-100 flex-shrink-0">
                                 <button
-                                    onClick={handleGuardarRespuestas}
+                                                    onClick={handleGuardarRespuestas}
                                     disabled={guardando}
                                     className={`w-full py-2.5 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2 ${guardadoOk ? "bg-green-500 text-white" : "bg-[#1E2D40] hover:bg-[#1E2D40]/90 text-white"}`}
                                 >
@@ -569,7 +569,7 @@ export default function LeadProfilePanel({ lead, onClose, mode = "edit" }: LeadP
                             </div>
                         </div>
 
-                        {/* COLUMNA 3: Actividades o Placeholder */}
+                        {/* COLUMNA 3 */}
                         {mode === "create" ? (
                             <div className="h-full flex flex-col items-center justify-center text-center p-12 bg-gray-50 border-2 border-dashed border-gray-200 rounded-3xl">
                                 <div className="w-16 h-16 bg-green-100 text-green-600 rounded-2xl flex items-center justify-center mb-4">
