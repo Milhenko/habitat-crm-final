@@ -1,5 +1,5 @@
-"use client";
 
+"use client";
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/lib/supabase";
 
@@ -11,6 +11,7 @@ export interface User {
   role: Role;
   initials: string;
   email: string;
+  avatar_url?: string | null;
 }
 
 interface AuthContextType {
@@ -80,6 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           role: data.role as Role,
           initials: data.initials,
           email: data.email,
+          avatar_url: data.avatar_url || null
         });
       }
 
@@ -91,6 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           role: u.role as Role,
           initials: u.initials,
           email: u.email,
+          avatar_url: u.avatar_url || null
         })));
       }
     } catch (e) {
