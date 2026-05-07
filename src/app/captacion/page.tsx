@@ -99,6 +99,23 @@ const EMPTY_FORM: FormData = {
 }
 
 const TIPOS = ['Casa/Villa', 'Departamento', 'Local Comercial', 'Oficina', 'Suite', 'Bodega', 'Terreno', 'Otro']
+
+const ZONAS = {
+  'Samborondón': {
+    'La Puntilla (Km 0-10)': ['Entreríos', 'Riberas del Batán', 'Isla Mocolí', 'Lagos de Batán', 'Las Brisas', 'Tenis Club', 'Plaza Lagos', 'Tornero'],
+    'Nuevo Samborondón (Km 10+)': ['Ciudad Celeste', 'El Cortijo', 'Buijo Histórico', 'Santa Mónica']
+  },
+  'Daule': {
+    'La Aurora / Vía a Salitre': ['Villa Club', 'La Joya', 'Villa del Rey', 'La Rioja', 'Casa Laguna', 'Matices', 'Milán']
+  },
+  'Guayaquil': {
+    'Vía a la Costa': ['Puerto Azul', 'Bosques de la Costa', 'Terranostra', 'Vía del Sol', 'Belo Horizonte', 'Costaalmar', 'Arcadia', 'Valle Alto', 'Los Ángeles', 'Chongón'],
+    'Norte': ['Urdesa', 'Kennedy', 'Miraflores', 'Alborada', 'Samanes', 'Guayacanes', 'Mucho Lote'],
+    'Ceibos y Vía a Daule': ['Los Ceibos', 'Colinas de los Ceibos', 'Lomas de Urdesa', 'Mapasingue'],
+    'Puerto Santa Ana': ['Bellini', 'Santana Lofts', 'The Point', 'Emporium'],
+    'Centro / Sur': ['Barrio del Centenario', 'Puerto Marítimo', 'Centro Histórico']
+  }
+}
 const ESTADOS_MARKETING = [
   { value: null, label: 'Sin estado', bg: 'bg-gray-100', text: 'text-gray-600' },
   { value: 'grabado', label: 'Grabado', bg: 'bg-amber-100', text: 'text-amber-700' },
