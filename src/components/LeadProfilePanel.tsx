@@ -151,7 +151,7 @@ export default function LeadProfilePanel({ lead, onClose, mode = "edit" }: LeadP
             .from("lead_notes")
             .select("*")
             .eq("lead_id", lead.id)
-            .in("tipo", ["llamada", "nota"])
+            .in("tipo", ["llamada", "nota", "guion"])
             .order("created_at", { ascending: false });
         if (data) setHistorial(data);
     };
