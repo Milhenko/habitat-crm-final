@@ -1,5 +1,6 @@
 "use client";
 
+import ProtectedRoute from "@/components/ProtectedRoute";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Search, Plus, Phone, Mail, Calendar, User, Building2 } from "lucide-react";
@@ -53,7 +54,7 @@ interface Lead {
     reassigned_at: string | null;
 }
 
-export default function ClientesPage() {
+function ContactosContent() {
     const { user, loading: authLoading } = useAuth();
     const [leads, setLeads] = useState<Lead[]>([]);
     const [loading, setLoading] = useState(true);
@@ -364,11 +365,19 @@ export default function ClientesPage() {
                     lead={null}
                     onClose={() => {
                         setShowCreatePanel(false);
-                        fetchLeads(); // Refresh list after creation
+                        fetchLeads();
                     }}
                     mode="create"
                 />
             )}
         </div>
+    );
+}
+
+export default function ContactosPage() {
+    return (
+        <ProtectedRoute>
+            <ContactosContent />
+        </ProtectedRoute>
     );
 }
