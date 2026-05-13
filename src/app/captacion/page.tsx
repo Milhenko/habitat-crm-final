@@ -100,22 +100,71 @@ const EMPTY_FORM: FormData = {
 
 const TIPOS = ['Casa/Villa', 'Departamento', 'Local Comercial', 'Oficina', 'Suite', 'Bodega', 'Terreno', 'Otro']
 
-const ZONAS = {
-  'Samborondón': {
-    'La Puntilla (Km 0-10)': ['Entreríos', 'Riberas del Batán', 'Isla Mocolí', 'Lagos de Batán', 'Las Brisas', 'Tenis Club', 'Plaza Lagos', 'Tornero'],
-    'Nuevo Samborondón (Km 10+)': ['Ciudad Celeste', 'El Cortijo', 'Buijo Histórico', 'Santa Mónica']
-  },
-  'Daule': {
-    'La Aurora / Vía a Salitre': ['Villa Club', 'La Joya', 'Villa del Rey', 'La Rioja', 'Casa Laguna', 'Matices', 'Milán']
-  },
-  'Guayaquil': {
-    'Vía a la Costa': ['Puerto Azul', 'Bosques de la Costa', 'Terranostra', 'Vía del Sol', 'Belo Horizonte', 'Costaalmar', 'Arcadia', 'Valle Alto', 'Los Ángeles', 'Chongón'],
-    'Norte': ['Urdesa', 'Kennedy', 'Miraflores', 'Alborada', 'Samanes', 'Guayacanes', 'Mucho Lote'],
-    'Ceibos y Vía a Daule': ['Los Ceibos', 'Colinas de los Ceibos', 'Lomas de Urdesa', 'Mapasingue'],
-    'Puerto Santa Ana': ['Bellini', 'Santana Lofts', 'The Point', 'Emporium'],
-    'Centro / Sur': ['Barrio del Centenario', 'Puerto Marítimo', 'Centro Histórico']
-  }
-}
+const ZONAS = [
+  'Samborondón - La Puntilla - Entreríos',
+  'Samborondón - La Puntilla - Riberas del Batán',
+  'Samborondón - La Puntilla - Isla Mocolí',
+  'Samborondón - La Puntilla - Lagos de Batán',
+  'Samborondón - La Puntilla - Las Brisas',
+  'Samborondón - La Puntilla - Tenis Club',
+  'Samborondón - La Puntilla - Plaza Lagos',
+  'Samborondón - La Puntilla - Tornero',
+  'Samborondón - Nuevo Samborondón - Ciudad Celeste',
+  'Samborondón - Nuevo Samborondón - El Cortijo',
+  'Samborondón - Nuevo Samborondón - Buijo Histórico',
+  'Samborondón - Nuevo Samborondón - Santa Mónica',
+  'Daule - La Aurora / Vía a Salitre - Villa Club',
+  'Daule - La Aurora / Vía a Salitre - La Joya',
+  'Daule - La Aurora / Vía a Salitre - Villa del Rey',
+  'Daule - La Aurora / Vía a Salitre - La Rioja',
+  'Daule - La Aurora / Vía a Salitre - Casa Laguna',
+  'Daule - La Aurora / Vía a Salitre - Matices',
+  'Daule - La Aurora / Vía a Salitre - Milán',
+  'Guayaquil - Vía a la Costa - Puerto Azul',
+  'Guayaquil - Vía a la Costa - Bosques de la Costa',
+  'Guayaquil - Vía a la Costa - Terranostra',
+  'Guayaquil - Vía a la Costa - Vía del Sol',
+  'Guayaquil - Vía a la Costa - Belo Horizonte',
+  'Guayaquil - Vía a la Costa - Costaalmar',
+  'Guayaquil - Vía a la Costa - Arcadia',
+  'Guayaquil - Vía a la Costa - Valle Alto',
+  'Guayaquil - Vía a la Costa - Los Ángeles',
+  'Guayaquil - Vía a la Costa - Chongón',
+  'Guayaquil - Norte - Urdesa',
+  'Guayaquil - Norte - Kennedy',
+  'Guayaquil - Norte - Miraflores',
+  'Guayaquil - Norte - Alborada',
+  'Guayaquil - Norte - Samanes',
+  'Guayaquil - Norte - Guayacanes',
+  'Guayaquil - Norte - Mucho Lote',
+  'Guayaquil - Ceibos y Vía a Daule - Los Ceibos',
+  'Guayaquil - Ceibos y Vía a Daule - Colinas de los Ceibos',
+  'Guayaquil - Ceibos y Vía a Daule - Lomas de Urdesa',
+  'Guayaquil - Ceibos y Vía a Daule - Mapasingue',
+  'Guayaquil - Puerto Santa Ana - Bellini',
+  'Guayaquil - Puerto Santa Ana - Santana Lofts',
+  'Guayaquil - Puerto Santa Ana - The Point',
+  'Guayaquil - Puerto Santa Ana - Emporium',
+  'Guayaquil - Centro / Sur - Barrio del Centenario',
+  'Guayaquil - Centro / Sur - Puerto Marítimo',
+  'Guayaquil - Centro / Sur - Centro Histórico',
+  'Santa Elena - Ruta Spondylus - Montañita',
+  'Santa Elena - Ruta Spondylus - Olón',
+  'Santa Elena - Ruta Spondylus - Manglaralto',
+  'Santa Elena - Ruta Spondylus - San José',
+  'Santa Elena - Ruta Spondylus - Ayangue',
+  'Santa Elena - Ruta Spondylus - Valdivia',
+  'Santa Elena - Ruta Spondylus - Puerto López',
+  'Santa Elena - Ruta Spondylus - Salinas',
+  'Santa Elena - Ruta Spondylus - La Libertad',
+  'Santa Elena - Ruta Spondylus - Santa Elena',
+  'Santa Elena - Ruta Spondylus - Ballenita',
+  'Santa Elena - Ruta Spondylus - Punta Carnero',
+  'Santa Elena - Ruta Spondylus - Anconcito',
+  'Santa Elena - Ruta Spondylus - Palmar',
+  'Santa Elena - Ruta Spondylus - Dos Mangas',
+]
+
 const ESTADOS_MARKETING = [
   { value: null, label: 'Sin estado', bg: 'bg-gray-100', text: 'text-gray-600' },
   { value: 'grabado', label: 'Grabado', bg: 'bg-amber-100', text: 'text-amber-700' },
@@ -289,11 +338,25 @@ export default function CaptacionPage() {
     if (errores.length > 0) { setFormError(`Campos obligatorios: ${errores.join(', ')}`); return }
 
     setSaving(true); setFormError(null)
+    
+    // Generar código automático si es nueva captación
+    let dataToSave = { ...form }
+    if (!editingId && !dataToSave.code) {
+      const { count } = await supabase.from('properties').select('*', { count: 'exact', head: true })
+      dataToSave.code = `PROP-${String((count || 0) + 1).padStart(4, '0')}`
+    }
+    
     const { error } = editingId
-      ? await supabase.from('properties').update(form).eq('id', editingId)
-      : await supabase.from('properties').insert(form)
-    if (error) setFormError(error.message)
-    else { setShowModal(false); fetchProperties() }
+      ? await supabase.from('properties').update(dataToSave).eq('id', editingId)
+      : await supabase.from('properties').insert(dataToSave)
+    
+    if (error) {
+      console.error('Supabase error:', error)
+      setFormError(error.message)
+    } else { 
+      setShowModal(false)
+      fetchProperties()
+    }
     setSaving(false)
   }
 
@@ -506,24 +569,12 @@ export default function CaptacionPage() {
                     </Select>
                   </div>
                   <div>
-  <Label>Zona / Sector</Label>
-  <Select value={form.zone ?? ''} onChange={v => f('zone', v)}>
-    <option value="">Seleccionar zona...</option>
-    {Object.entries(ZONAS).map(([ciudad, macrosectores]) => (
-      <optgroup key={ciudad} label={ciudad}>
-        {Object.entries(macrosectores).map(([macro, urbs]) => (
-          <optgroup key={`${ciudad}-${macro}`} label={`  ${macro}`}>
-            {urbs.map(urb => (
-              <option key={`${ciudad}-${macro}-${urb}`} value={`${ciudad} - ${macro} - ${urb}`}>
-                {'    '}{urb}
-              </option>
-            ))}
-          </optgroup>
-        ))}
-      </optgroup>
-    ))}
-  </Select>
-</div>
+                    <Label>Zona / Sector</Label>
+                    <Select value={form.zone ?? ''} onChange={v => f('zone', v)}>
+                      <option value="">Seleccionar zona...</option>
+                      {ZONAS.map(z => <option key={z} value={z}>{z}</option>)}
+                    </Select>
+                  </div>
                   <div className="col-span-2">
                     <Label>Dirección *</Label>
                     <Input value={form.address ?? ''} onChange={v => f('address', v)} placeholder="Dirección completa" />
