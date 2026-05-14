@@ -73,37 +73,56 @@ function ContactosContent() {
     const canSeeMarketing = user?.role === "Super Administrador" || user?.role === "Administrador de Marketing";
     const canAddLead = true;
 
+    async function fetchLeads(silent = false) {
+        if (!silent) setLoading(true);
+        
+        try {
+            const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Query timeout - tomó más de 10 segundos')), 10000)
+            );
+            
+            let query = supabase
+                .from("leads")
+                .select("*", { count: "exact" })
+                .order("created_at", { ascending: false })
+                .range((pagina - 1) * porPagina, pagina * porPagina - 1);
+
+            if (isAsesor && user) {
+                query = query.eq("assigned_to_name", user.name);
+            }
+
+            if (filtroAsesor) {
+                if (filtroAsesor === "Sin asignar") {
+                    query = query.or('assigned_to_name.is.null,assigned_to_name.eq."Sin asignar"');
+                } else {
+                    query = query.eq("assigned_to_name", filtroAsesor);
+                }
+            }
+
+            if (filtroEstado) query = query.eq("status", filtroEstado);
+            if (busqueda) query = query.or(`name.ilike.%${busqueda}%,phone.ilike.%${busqueda}%,email.ilike.%${busqueda}%`);
+
+            const queryPromise = query;
+            const { data, count, error: fetchError } = await Promise.race([queryPromise, timeoutPromise]) as any;
+            
+            if (fetchError) {
+                console.error('Error al cargar leads:', fetchError);
+            } else if (data) {
+                setLeads(data);
+                setTotalLeads(count || 0);
+            }
+        } catch (err: any) {
+            console.error('Error o timeout:', err);
+        } finally {
+            if (!silent) setLoading(false);
+        }
+    }
+
     useEffect(() => {
-        async function fetchLeads() {
-  setLoading(true)
-  setError(null)
-  
-  try {
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Query timeout - tomó más de 10 segundos')), 10000)
-    )
-    
-    let query = supabase.from('leads').select('*')
-    if (user?.role !== 'Super Administrador') {
-      query = query.or(`assigned_to.eq.${user?.email},assigned_to_name.eq.${user?.name}`)
-    }
-    
-    const queryPromise = query.order('created_at', { ascending: false })
-    
-    const { data, error: fetchError } = await Promise.race([queryPromise, timeoutPromise]) as any
-    
-    if (fetchError) {
-      setError(`Error al cargar leads: ${fetchError.message}`)
-    } else {
-      setLeads(data || [])
-    }
-  } catch (err: any) {
-    setError(err.message || 'Error desconocido')
-  } finally {
-    setLoading(false)
-  }
-}
-    }, [pagina, filtroEstado, busqueda, filtroAsesor, porPagina, authLoading]);
+        if (!authLoading && user) {
+            fetchLeads();
+        }
+    }, [pagina, filtroEstado, busqueda, filtroAsesor, porPagina, authLoading, user]);
 
     useEffect(() => {
         if (!authLoading && user) {
@@ -123,38 +142,6 @@ function ContactosContent() {
             };
         }
     }, [user, authLoading]);
-
-    const fetchLeads = async (silent = false) => {
-        if (!silent) setLoading(true);
-
-        let query = supabase
-            .from("leads")
-            .select("*", { count: "exact" })
-            .order("created_at", { ascending: false })
-            .range((pagina - 1) * porPagina, pagina * porPagina - 1);
-
-        if (isAsesor && user) {
-            query = query.eq("assigned_to_name", user.name);
-        }
-
-        if (filtroAsesor) {
-            if (filtroAsesor === "Sin asignar") {
-                query = query.or('assigned_to_name.is.null,assigned_to_name.eq."Sin asignar"');
-            } else {
-                query = query.eq("assigned_to_name", filtroAsesor);
-            }
-        }
-
-        if (filtroEstado) query = query.eq("status", filtroEstado);
-        if (busqueda) query = query.or(`name.ilike.%${busqueda}%,phone.ilike.%${busqueda}%,email.ilike.%${busqueda}%`);
-
-        const { data, count, error } = await query;
-        if (!error && data) {
-            setLeads(data);
-            setTotalLeads(count || 0);
-        }
-        if (!silent) setLoading(false);
-    };
 
     const handleCambiarAsesor = async (leadId: string, currentAsesor: string | null, nuevoAsesor: string) => {
         setActualizandoAsesorId(leadId);
