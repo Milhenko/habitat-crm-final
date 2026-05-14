@@ -74,7 +74,35 @@ function ContactosContent() {
     const canAddLead = true;
 
     useEffect(() => {
-        fetchLeads();
+        async function fetchLeads() {
+  setLoading(true)
+  setError(null)
+  
+  try {
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Query timeout - tomó más de 10 segundos')), 10000)
+    )
+    
+    let query = supabase.from('leads').select('*')
+    if (user?.role !== 'Super Administrador') {
+      query = query.or(`assigned_to.eq.${user?.email},assigned_to_name.eq.${user?.name}`)
+    }
+    
+    const queryPromise = query.order('created_at', { ascending: false })
+    
+    const { data, error: fetchError } = await Promise.race([queryPromise, timeoutPromise]) as any
+    
+    if (fetchError) {
+      setError(`Error al cargar leads: ${fetchError.message}`)
+    } else {
+      setLeads(data || [])
+    }
+  } catch (err: any) {
+    setError(err.message || 'Error desconocido')
+  } finally {
+    setLoading(false)
+  }
+}
     }, [pagina, filtroEstado, busqueda, filtroAsesor, porPagina, authLoading]);
 
     useEffect(() => {
