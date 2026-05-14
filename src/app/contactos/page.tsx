@@ -198,17 +198,25 @@ function ContactosContent() {
                             <input
                                 type="text"
                                 placeholder="Buscar por nombre, correo o teléfono..."
-                                className="form-input pl-9"
+                                className="w-full pl-9 pr-4 py-2 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20"
                                 value={busqueda}
                                 onChange={(e) => { setBusqueda(e.target.value); setPagina(1); }}
                             />
                         </div>
-                        <select className="form-input md:w-48" value={filtroEstado} onChange={(e) => { setFiltroEstado(e.target.value); setPagina(1); }}>
+                        <select 
+                            className="px-4 py-2 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20 md:w-48" 
+                            value={filtroEstado} 
+                            onChange={(e) => { setFiltroEstado(e.target.value); setPagina(1); }}
+                        >
                             <option value="">Todas las etapas</option>
                             {ESTADOS.map(e => <option key={e} value={e}>{e}</option>)}
                         </select>
                         {!isAsesor && (
-                            <select className="form-input md:w-48" value={filtroAsesor} onChange={(e) => { setFiltroAsesor(e.target.value); setPagina(1); }}>
+                            <select 
+                                className="px-4 py-2 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20 md:w-48" 
+                                value={filtroAsesor} 
+                                onChange={(e) => { setFiltroAsesor(e.target.value); setPagina(1); }}
+                            >
                                 <option value="">Todos los asesores</option>
                                 <option value="Sin asignar">Sin asignar</option>
                                 {ASESORES.map(a => <option key={a} value={a}>{a}</option>)}
