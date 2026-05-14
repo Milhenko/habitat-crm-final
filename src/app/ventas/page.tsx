@@ -1,477 +1,182 @@
-"use client";
+'use client'
+import { useEffect, useState } from 'react'
+import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/context/AuthContext'
+import GlobalHeader from '@/components/GlobalHeader'
+import LeadProfilePanel from '@/components/LeadProfilePanel'
 
-import ProtectedRoute from "@/components/ProtectedRoute";
-import { useState, useEffect } from "react";
-import { useAuth } from "@/context/AuthContext";
-import { supabase } from "@/lib/supabase";
-import { Phone, User, DollarSign, Clock, Search, Layers, ChevronDown } from "lucide-react";
-import GlobalHeader from "@/components/GlobalHeader";
-import LeadProfilePanel from "@/components/LeadProfilePanel";
+const STAGES = [
+  { id: 'lead_entrante', label: 'Lead Entrante', color: 'bg-yellow-100 text-yellow-700 border-yellow-300' },
+  { id: 'contacto_efectivo', label: 'Contacto Efectivo', color: 'bg-blue-100 text-blue-700 border-blue-300' },
+  { id: 'aterrizaje_opciones', label: 'Aterrizaje y Opciones', color: 'bg-purple-100 text-purple-700 border-purple-300' },
+  { id: 'seguimiento_abierto', label: 'Seguimiento Abierto (Infinito)', color: 'bg-orange-100 text-orange-700 border-orange-300' },
+  { id: 'visita_agendada', label: 'Visita Agendada', color: 'bg-indigo-100 text-indigo-700 border-indigo-300' },
+  { id: 'visita_realizada', label: 'Visita Realizada', color: 'bg-cyan-100 text-cyan-700 border-cyan-300' },
+  { id: 'reserva', label: 'Reserva', color: 'bg-teal-100 text-teal-700 border-teal-300' },
+  { id: 'cierre_ganado', label: 'Cierre Ganado', color: 'bg-green-100 text-green-700 border-green-300' },
+  { id: 'descartados_pausa', label: 'Descartados / En Pausa', color: 'bg-red-100 text-red-700 border-red-300' },
+]
 
-const COLUMNAS = [
-    { id: "Lead Entrante", color: "border-yellow-400", badge: "bg-yellow-100 text-yellow-700", alerta: true },
-    { id: "Contacto Efectivo", color: "border-blue-400", badge: "bg-blue-100 text-blue-700", alerta: false },
-    { id: "Aterrizaje y Opciones", color: "border-purple-400", badge: "bg-purple-100 text-purple-700", alerta: false },
-    { id: "Seguimiento Abierto (Infinito)", color: "border-orange-400", badge: "bg-orange-100 text-orange-700", alerta: false },
-    { id: "Visita Agendada", color: "border-indigo-400", badge: "bg-indigo-100 text-indigo-700", alerta: false },
-    { id: "Visita Realizada", color: "border-cyan-400", badge: "bg-cyan-100 text-cyan-700", alerta: false },
-    { id: "Reserva", color: "border-teal-400", badge: "bg-teal-100 text-teal-700", alerta: false },
-    { id: "Cierre Ganado", color: "border-green-400", badge: "bg-green-100 text-green-700", alerta: false },
-    { id: "Descartados / En Pausa", color: "border-red-400", badge: "bg-red-100 text-red-700", alerta: false },
-];
-
-interface Lead {
-    id: string;
-    name: string;
-    phone: string | null;
-    status: string;
-    canal: string | null;
-    assigned_to_name: string | null;
-    source: string | null;
-    monto_negociacion: number | null;
-    fecha_recontacto: string | null;
-    created_at: string | null;
-    email: string | null;
-    formulario: string | null;
-    assigned_at: string | null;
-    reassigned_at: string | null;
-}
-
-interface ColumnData {
-    leads: Lead[];
-    total: number;
-    hasMore: boolean;
-}
-
-function VentasContent() {
-    const { user, loading: authLoading } = useAuth();
-    const [columnData, setColumnData] = useState<Record<string, ColumnData>>({});
-    const [loading, setLoading] = useState(true);
-    const [draggingId, setDraggingId] = useState<string | null>(null);
-    const [leadSeleccionado, setLeadSeleccionado] = useState<Lead | null>(null);
-    const [busqueda, setBusqueda] = useState("");
-    const [filtroEstado, setFiltroEstado] = useState("");
-    const [filtroAsesor, setFiltroAsesor] = useState("");
-    const [limiteGlobal, setLimiteGlobal] = useState<number>(20);
-
-    const isAsesor = user?.role === "Asesor";
-    const isSuperAdmin = user?.role === "Super Administrador";
-
-    useEffect(() => {
-        if (!authLoading && user) {
-            fetchAllColumns();
-            checkReactivaciones();
-        }
-    }, [user, authLoading, busqueda, filtroEstado, filtroAsesor, limiteGlobal]);
-
-    const buildQuery = (status: string, limit: number) => {
-        let query = supabase
-            .from("leads")
-            .select("id, name, phone, status, canal, assigned_to_name, monto_negociacion, fecha_recontacto, created_at, email", { count: 'exact' })
-            .eq("status", status)
-            .order("created_at", { ascending: false })
-            .limit(limit);
-
-        if (isAsesor && user) {
-            query = query.eq("assigned_to_name", user.name);
-        }
-
-        if (filtroAsesor) {
-            if (filtroAsesor === "Sin asignar") {
-                query = query.or('assigned_to_name.is.null,assigned_to_name.eq."Sin asignar"');
-            } else {
-                query = query.eq("assigned_to_name", filtroAsesor);
-            }
-        }
-
-        if (busqueda) {
-            query = query.or(`name.ilike.%${busqueda}%,phone.ilike.%${busqueda}%,email.ilike.%${busqueda}%`);
-        }
-
-        return query;
-    };
-
-    const fetchAllColumns = async () => {
-        setLoading(true);
-        const newColumnData: Record<string, ColumnData> = {};
-
-        // Si hay filtro de estado, solo cargar esa columna
-        const columnasACargar = filtroEstado ? [filtroEstado] : COLUMNAS.map(c => c.id);
-
-        await Promise.all(
-            columnasACargar.map(async (columnaId) => {
-                const { data, count, error } = await buildQuery(columnaId, limiteGlobal);
-
-                if (!error && data) {
-                    newColumnData[columnaId] = {
-                        leads: data as Lead[],
-                        total: count || 0,
-                        hasMore: (count || 0) > limiteGlobal
-                    };
-                } else {
-                    newColumnData[columnaId] = {
-                        leads: [],
-                        total: 0,
-                        hasMore: false
-                    };
-                }
-            })
-        );
-
-        setColumnData(newColumnData);
-        setLoading(false);
-    };
-
-    const loadMoreForColumn = async (columnaId: string) => {
-        const currentData = columnData[columnaId];
-        if (!currentData) return;
-
-        const newLimit = currentData.leads.length + limiteGlobal;
-        const { data, count, error } = await buildQuery(columnaId, newLimit);
-
-        if (!error && data) {
-            setColumnData(prev => ({
-                ...prev,
-                [columnaId]: {
-                    leads: data as Lead[],
-                    total: count || 0,
-                    hasMore: (count || 0) > newLimit
-                }
-            }));
-        }
-    };
-
-    const checkReactivaciones = async () => {
-        const hoy = new Date().toISOString().slice(0, 10);
-        const { data, error } = await supabase
-            .from("leads")
-            .select("id")
-            .eq("status", "Descartados / En Pausa")
-            .lte("fecha_recontacto", hoy)
-            .not("fecha_recontacto", "is", null);
-
-        if (!error && data && data.length > 0) {
-            const ids = data.map(l => l.id);
-            await supabase.from("leads").update({ status: "Lead Entrante", reactivado: true }).in("id", ids);
-            fetchAllColumns();
-        }
-    };
-
-    const diasParaRecontacto = (fecha: string | null) => {
-        if (!fecha) return null;
-        const hoy = new Date();
-        const recontacto = new Date(fecha);
-        const diff = Math.ceil((recontacto.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24));
-        return diff;
-    };
-
-    const getInitials = (name: string | null) => {
-        if (!name || name.trim() === "") return "?";
-        return name.charAt(0).toUpperCase();
-    };
-
-    const canDragLead = (lead: Lead) => {
-        if (isSuperAdmin) return true;
-        if (!isAsesor) return true;
-        return lead.assigned_to_name === user?.name;
-    };
-
-    const handleDragStart = (e: React.DragEvent, leadId: string, columnaId: string) => {
-        const lead = columnData[columnaId]?.leads.find(l => l.id === leadId);
-        if (!lead || !canDragLead(lead)) {
-            e.preventDefault();
-            return;
-        }
-        e.dataTransfer.effectAllowed = 'move';
-        setDraggingId(leadId);
-        e.dataTransfer.setData("leadId", leadId);
-        e.dataTransfer.setData("fromColumn", columnaId);
-    };
-
-    const handleDragOver = (e: React.DragEvent) => {
-        e.preventDefault();
-    };
-
-    const handleDrop = async (e: React.DragEvent, nuevaEtapa: string) => {
-        e.preventDefault();
-        const leadId = e.dataTransfer.getData("leadId");
-        const fromColumn = e.dataTransfer.getData("fromColumn");
-        
-        if (!leadId || !fromColumn) return;
-
-        const lead = columnData[fromColumn]?.leads.find(l => l.id === leadId);
-        if (!lead || lead.status === nuevaEtapa || !canDragLead(lead)) {
-            setDraggingId(null);
-            return;
-        }
-
-        if (isAsesor && nuevaEtapa === "Descartados / En Pausa") {
-            alert("Solo los administradores pueden descartar o pausar leads.");
-            setDraggingId(null);
-            return;
-        }
-
-        const { error } = await supabase
-            .from("leads")
-            .update({ status: nuevaEtapa })
-            .eq("id", leadId);
-
-        if (!error) {
-            // Actualización optimista
-            setColumnData(prev => {
-                const newData = { ...prev };
-                
-                // Remover de columna origen
-                if (newData[fromColumn]) {
-                    newData[fromColumn] = {
-                        ...newData[fromColumn],
-                        leads: newData[fromColumn].leads.filter(l => l.id !== leadId),
-                        total: newData[fromColumn].total - 1
-                    };
-                }
-                
-                // Agregar a columna destino
-                if (newData[nuevaEtapa]) {
-                    newData[nuevaEtapa] = {
-                        ...newData[nuevaEtapa],
-                        leads: [{ ...lead, status: nuevaEtapa }, ...newData[nuevaEtapa].leads],
-                        total: newData[nuevaEtapa].total + 1
-                    };
-                }
-                
-                return newData;
-            });
-        }
-
-        setDraggingId(null);
-    };
-
-    const getTotalLeads = () => {
-        return Object.values(columnData).reduce((sum, col) => sum + col.total, 0);
-    };
-
-    if (authLoading || loading) {
-        return (
-            <div className="min-h-screen bg-[#EBEAE6]">
-                <GlobalHeader />
-                <div className="flex items-center justify-center h-96">
-                    <div className="text-center">
-                        <div className="w-8 h-8 border-2 border-[#1E2D40] border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-                        <p className="text-[#1A1A1A]/50">Cargando pipeline...</p>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    return (
-        <div className="min-h-screen bg-[#EBEAE6]">
-            <GlobalHeader />
-
-            <main className="p-6 md:p-10">
-                <div className="max-w-[1600px] mx-auto space-y-6">
-                    <div>
-                        <h1 className="text-2xl font-black text-[#1E2D40] tracking-tighter">
-                            Pipeline de <span className="underline decoration-2 underline-offset-4">Ventas</span>
-                        </h1>
-                        <p className="text-xs text-[#1A1A1A]/50 mt-1">{getTotalLeads()} leads en el pipeline</p>
-                    </div>
-
-                    <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-[#1A1A1A]/5 p-6">
-                        <div className="flex flex-col md:flex-row gap-4">
-                            <div className="flex-1 relative">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#1A1A1A]/30" />
-                                <input
-                                    type="text"
-                                    placeholder="Buscar por nombre, teléfono o email..."
-                                    value={busqueda}
-                                    onChange={(e) => setBusqueda(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20"
-                                />
-                            </div>
-
-                            <div className="relative">
-                                <Layers className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#1A1A1A]/30" />
-                                <select
-                                    value={limiteGlobal}
-                                    onChange={(e) => setLimiteGlobal(parseInt(e.target.value))}
-                                    className="pl-10 pr-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20 font-bold"
-                                >
-                                    <option value={20}>20 por columna</option>
-                                    <option value={50}>50 por columna</option>
-                                    <option value={100}>100 por columna</option>
-                                </select>
-                            </div>
-
-                            <select
-                                value={filtroEstado}
-                                onChange={(e) => setFiltroEstado(e.target.value)}
-                                className="px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20"
-                            >
-                                <option value="">Todas las etapas</option>
-                                {COLUMNAS.map((col) => (
-                                    <option key={col.id} value={col.id}>{col.id}</option>
-                                ))}
-                            </select>
-                            {!isAsesor && (
-                                <select
-                                    value={filtroAsesor}
-                                    onChange={(e) => setFiltroAsesor(e.target.value)}
-                                    className="px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20"
-                                >
-                                    <option value="">Todos los asesores</option>
-                                    <option value="Sin asignar">Sin asignar</option>
-                                    <option value="José Morán">José Morán</option>
-                                    <option value="Sebastián Jaramillo">Sebastián Jaramillo</option>
-                                    <option value="Gastón Calderón">Gastón Calderón</option>
-                                    <option value="Rafaela Velásquez">Rafaela Velásquez</option>
-                                    <option value="Milenko Surati">Milenko Surati</option>
-                                </select>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </main>
-
-            <div className="overflow-x-auto pb-8 px-6">
-                <div className="flex gap-4" style={{ minWidth: `${COLUMNAS.length * 300}px` }}>
-                    {COLUMNAS.map((col) => {
-                        const colData = columnData[col.id] || { leads: [], total: 0, hasMore: false };
-                        const { leads, total, hasMore } = colData;
-
-                        // Si hay filtro de estado y no coincide, no mostrar columna
-                        if (filtroEstado && filtroEstado !== col.id) return null;
-
-                        return (
-                            <div
-                                key={col.id}
-                                onDragOver={handleDragOver}
-                                onDrop={(e) => handleDrop(e, col.id)}
-                                className={`flex-shrink-0 w-72 bg-white rounded-2xl border-t-4 ${col.color} shadow-sm flex flex-col`}
-                                style={{ minHeight: "500px" }}
-                            >
-                                <div className="p-4 border-b border-gray-100 flex-shrink-0">
-                                    <div className="flex items-center justify-between">
-                                        <span className={`text-[10px] font-black px-2 py-1 rounded-full ${col.badge}`}>
-                                            {col.id}
-                                        </span>
-                                        <span className="text-xs font-black text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-                                            {leads.length}/{total}
-                                        </span>
-                                    </div>
-                                    {col.alerta && (
-                                        <div className="mt-2 flex items-center gap-1.5 bg-red-50 border border-red-100 rounded-lg px-2 py-1">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
-                                            <span className="text-[10px] font-black text-red-600">Responder &lt; 5 min</span>
-                                        </div>
-                                    )}
-                                    {col.id === "Descartados / En Pausa" && (
-                                        <div className="mt-2 flex items-center gap-1.5 bg-amber-50 border border-amber-100 rounded-lg px-2 py-1">
-                                            <Clock className="w-3 h-3 text-amber-500" />
-                                            <span className="text-[10px] font-black text-amber-600">Se reactivan automáticamente</span>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="p-3 flex-1 space-y-3 overflow-y-auto">
-                                    {leads.map((lead) => {
-                                        const dias = col.id === "Descartados / En Pausa" ? diasParaRecontacto(lead.fecha_recontacto) : null;
-                                        const isDraggable = canDragLead(lead);
-
-                                        return (
-                                            <div
-                                                key={lead.id}
-                                                draggable={isDraggable}
-                                                onDragStart={(e) => handleDragStart(e, lead.id, col.id)}
-                                                className={`bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-all ${isDraggable ? "cursor-grab active:cursor-grabbing" : "cursor-default"} ${draggingId === lead.id ? "opacity-50" : ""}`}
-                                            >
-                                                <div className="flex items-start justify-between mb-2">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="w-7 h-7 rounded-full bg-[#1E2D40]/10 flex items-center justify-center text-[#1E2D40] font-bold text-xs flex-shrink-0">
-                                                            {getInitials(lead.name)}
-                                                        </div>
-                                                        <button
-                                                            onClick={() => setLeadSeleccionado(lead)}
-                                                            className="font-bold text-[#1A1A1A] hover:text-[#1E2D40] hover:underline text-sm text-left"
-                                                        >
-                                                            {lead.name}
-                                                        </button>
-                                                    </div>
-                                                </div>
-
-                                                {lead.phone && (
-                                                    <a href={`tel:${lead.phone}`} className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-[#1E2D40] mb-2">
-                                                        <Phone className="w-3 h-3" />{lead.phone}
-                                                    </a>
-                                                )}
-
-                                                {lead.monto_negociacion && (
-                                                    <div className="flex items-center gap-1.5 text-xs font-bold text-green-600 mb-2">
-                                                        <DollarSign className="w-3 h-3" />${lead.monto_negociacion.toLocaleString()}
-                                                    </div>
-                                                )}
-
-                                                {col.id === "Descartados / En Pausa" && lead.fecha_recontacto && (
-                                                    <div className={`flex items-center gap-1.5 text-xs font-bold mb-2 ${dias !== null && dias <= 7 ? "text-red-500" : "text-amber-500"}`}>
-                                                        <Clock className="w-3 h-3" />
-                                                        {dias !== null && dias <= 0 ? "¡Recontactar hoy!" : dias !== null && dias <= 7 ? `${dias} días` : `${lead.fecha_recontacto}`}
-                                                    </div>
-                                                )}
-
-                                                <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-50">
-                                                    <div className="flex items-center gap-1 text-[10px] text-gray-400">
-                                                        <User className="w-3 h-3" />
-                                                        {lead.assigned_to_name || "Sin asignar"}
-                                                    </div>
-                                                    {lead.canal && (
-                                                        <span className="text-[9px] font-bold text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">
-                                                            {lead.canal.replace("Meta Ads - ", "")}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-
-                                    {leads.length === 0 && (
-                                        <div className="text-center py-8 text-gray-300 text-xs">Sin leads aquí</div>
-                                    )}
-                                </div>
-
-                                {hasMore && (
-                                    <div className="p-3 border-t border-gray-100 flex-shrink-0">
-                                        <button
-                                            onClick={() => loadMoreForColumn(col.id)}
-                                            className="w-full py-2 text-xs font-bold text-[#1E2D40] hover:bg-[#1E2D40]/5 rounded-lg transition-all flex items-center justify-center gap-2"
-                                        >
-                                            <ChevronDown className="w-4 h-4" />
-                                            Ver más ({total - leads.length} restantes)
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
-
-            {leadSeleccionado && (
-                <LeadProfilePanel
-                    lead={leadSeleccionado}
-                    onClose={() => {
-                        setLeadSeleccionado(null);
-                        fetchAllColumns();
-                    }}
-                />
-            )}
-        </div>
-    );
-}
+const PAGE_SIZE = 50
 
 export default function VentasPage() {
-    return (
-        <ProtectedRoute>
-            <VentasContent />
-        </ProtectedRoute>
-    );
+  const { user } = useAuth()
+  const [leads, setLeads] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [selectedLead, setSelectedLead] = useState<any>(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [filterStage, setFilterStage] = useState<string>('all')
+  const [filterAsesor, setFilterAsesor] = useState<string>('all')
+  const [visibleCounts, setVisibleCounts] = useState<Record<string, number>>({})
+
+  useEffect(() => {
+    const initialCounts: Record<string, number> = {}
+    STAGES.forEach(s => { initialCounts[s.id] = PAGE_SIZE })
+    setVisibleCounts(initialCounts)
+  }, [])
+
+  async function fetchLeads() {
+    setLoading(true)
+    setError(null)
+    let query = supabase.from('leads').select('*')
+    if (user?.role !== 'Super Administrador') {
+      query = query.or(`assigned_to.eq.${user?.email},assigned_to_name.eq.${user?.name}`)
+    }
+    const { data, error: fetchError } = await query.order('created_at', { ascending: false })
+    if (fetchError) {
+      setError(fetchError.message)
+    } else {
+      setLeads(data || [])
+    }
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    fetchLeads()
+    const channel = supabase.channel('leads_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, () => {
+        fetchLeads()
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [user])
+
+  const filtered = leads.filter(l => {
+    if (filterStage !== 'all' && l.sales_stage !== filterStage) return false
+    if (filterAsesor !== 'all' && l.assigned_to_name !== filterAsesor) return false
+    if (searchTerm) {
+      const q = searchTerm.toLowerCase()
+      return (l.name?.toLowerCase().includes(q) || l.phone?.toLowerCase().includes(q) || l.email?.toLowerCase().includes(q))
+    }
+    return true
+  })
+
+  const grouped: Record<string, any[]> = {}
+  STAGES.forEach(s => { grouped[s.id] = [] })
+  filtered.forEach(l => {
+    const stage = l.sales_stage || 'lead_entrante'
+    if (grouped[stage]) grouped[stage].push(l)
+  })
+
+  async function handleDrop(leadId: string, newStage: string) {
+    const { error: updateError } = await supabase.from('leads').update({ sales_stage: newStage }).eq('id', leadId)
+    if (updateError) alert('Error al mover lead: ' + updateError.message)
+    else fetchLeads()
+  }
+
+  function handleDragOver(e: React.DragEvent) { e.preventDefault() }
+
+  function handleDragStart(e: React.DragEvent, leadId: string) {
+    e.dataTransfer.setData('leadId', leadId)
+  }
+
+  function handleDropZone(e: React.DragEvent, newStage: string) {
+    e.preventDefault()
+    const leadId = e.dataTransfer.getData('leadId')
+    if (leadId) handleDrop(leadId, newStage)
+  }
+
+  const asesores = Array.from(new Set(leads.map(l => l.assigned_to_name).filter(Boolean)))
+
+  if (loading) return <div className="min-h-screen bg-[#EBEAE6] flex items-center justify-center"><p className="text-[#1A1A1A]/50">Cargando pipeline...</p></div>
+  if (error) return <div className="min-h-screen bg-[#EBEAE6] flex items-center justify-center"><p className="text-red-500">Error: {error}</p></div>
+
+  return (
+    <div className="min-h-screen bg-[#EBEAE6]">
+      <GlobalHeader />
+      <main className="p-6">
+        <div className="max-w-[1600px] mx-auto space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-black text-[#1E2D40] tracking-tighter">Pipeline de <span className="underline decoration-2 underline-offset-4">Ventas</span></h1>
+              <p className="text-xs text-[#1A1A1A]/50 mt-1">{filtered.length} leads en el pipeline</p>
+            </div>
+          </div>
+
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-[#1A1A1A]/5 p-4">
+            <div className="flex gap-3 flex-wrap">
+              <input type="text" placeholder="Buscar por nombre, teléfono o email..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+                className="flex-1 min-w-[200px] px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20" />
+              <select value={filterStage} onChange={e => setFilterStage(e.target.value)}
+                className="px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20">
+                <option value="all">Todas las etapas</option>
+                {STAGES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+              </select>
+              <select value={filterAsesor} onChange={e => setFilterAsesor(e.target.value)}
+                className="px-4 py-2.5 bg-[#EBEAE6]/50 border border-[#1A1A1A]/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1E2D40]/20">
+                <option value="all">Todos los asesores</option>
+                {asesores.map(a => <option key={a} value={a}>{a}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div className="flex gap-4 overflow-x-auto pb-4">
+            {STAGES.map(stage => {
+              const stageLeads = grouped[stage.id] || []
+              const visibleCount = visibleCounts[stage.id] || PAGE_SIZE
+              const visibleLeads = stageLeads.slice(0, visibleCount)
+              const hasMore = stageLeads.length > visibleCount
+
+              return (
+                <div key={stage.id} className="flex-shrink-0 w-80">
+                  <div className={`rounded-2xl border-2 ${stage.color} p-4 h-full min-h-[600px] flex flex-col`}
+                    onDragOver={handleDragOver} onDrop={e => handleDropZone(e, stage.id)}>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-black text-sm uppercase tracking-wide">{stage.label}</h3>
+                      <span className="text-xs font-bold px-2 py-1 rounded-full bg-white/50">{stageLeads.length}</span>
+                    </div>
+
+                    <div className="space-y-2 flex-1 overflow-y-auto">
+                      {visibleLeads.map(lead => (
+                        <div key={lead.id} draggable onDragStart={e => handleDragStart(e, lead.id)} onClick={() => setSelectedLead(lead)}
+                          className="bg-white rounded-xl p-3 shadow-sm border border-[#1A1A1A]/10 hover:shadow-md transition-shadow cursor-pointer">
+                          <p className="font-bold text-sm text-[#1E2D40] truncate">{lead.name || 'Sin nombre'}</p>
+                          <p className="text-xs text-[#1A1A1A]/60 truncate mt-1">{lead.phone || lead.email || 'Sin contacto'}</p>
+                          {lead.assigned_to_name && (
+                            <p className="text-xs text-[#1A1A1A]/40 mt-2">{lead.assigned_to_name}</p>
+                          )}
+                        </div>
+                      ))}
+
+                      {hasMore && (
+                        <button onClick={() => setVisibleCounts(prev => ({ ...prev, [stage.id]: visibleCount + PAGE_SIZE }))}
+                          className="w-full py-2 text-xs font-bold text-[#1E2D40] bg-white/50 rounded-lg hover:bg-white transition-colors">
+                          Ver más ({stageLeads.length - visibleCount} restantes)
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </main>
+
+      {selectedLead && (
+        <LeadProfilePanel lead={selectedLead} onClose={() => { setSelectedLead(null); fetchLeads() }} mode="edit" />
+      )}
+    </div>
+  )
 }
