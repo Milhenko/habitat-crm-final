@@ -39,27 +39,43 @@ export default function VentasPage() {
   async function fetchLeads() {
     setLoading(true)
     setError(null)
-    let query = supabase.from('leads').select('*')
-    if (user?.role !== 'Super Administrador') {
-      query = query.or(`assigned_to.eq.${user?.email},assigned_to_name.eq.${user?.name}`)
+    
+    try {
+      let query = supabase.from('leads').select('*')
+      
+      if (user?.role !== 'Super Administrador') {
+        query = query.eq('assigned_to_name', user?.name)
+      }
+      
+      const { data, error: fetchError } = await query.order('created_at', { ascending: false })
+      
+      if (fetchError) {
+        setError(fetchError.message)
+      } else {
+        setLeads(data || [])
+      }
+    } catch (err: any) {
+      setError(err.message || 'Error desconocido')
+    } finally {
+      setLoading(false)
     }
-    const { data, error: fetchError } = await query.order('created_at', { ascending: false })
-    if (fetchError) {
-      setError(fetchError.message)
-    } else {
-      setLeads(data || [])
-    }
-    setLoading(false)
   }
 
   useEffect(() => {
-    fetchLeads()
-    const channel = supabase.channel('leads_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, () => {
-        fetchLeads()
-      })
-      .subscribe()
-    return () => { supabase.removeChannel(channel) }
+    if (user) {
+      fetchLeads()
+    }
+  }, [user])
+
+  useEffect(() => {
+    if (user) {
+      const channel = supabase.channel('leads_realtime')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, () => {
+          fetchLeads()
+        })
+        .subscribe()
+      return () => { supabase.removeChannel(channel) }
+    }
   }, [user])
 
   const filtered = leads.filter(l => {
