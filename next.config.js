@@ -1,12 +1,39 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
+  reactStrictMode: false,
+  
+  generateBuildId: async () => {
+    return `build-${Date.now()}`
+  },
+
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=0, must-revalidate',
+          },
+        ],
+      },
+      {
+        source: '/_next/static/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+    ]
+  },
+
   typescript: {
-    // Esto obliga a Vercel a publicar aunque haya errores de Typescript
     ignoreBuildErrors: true,
   },
+  
   eslint: {
-    // Esto ignora las advertencias de "orden" en el código
     ignoreDuringBuilds: true,
   },
 }
