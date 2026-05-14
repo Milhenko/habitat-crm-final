@@ -3,8 +3,7 @@
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { Search, Plus, Phone, Mail, Calendar, User, Building2 } from "lucide-react";
-import Link from "next/link";
+import { Search, Plus, Phone, Mail, Calendar, User } from "lucide-react";
 import LeadProfilePanel from "@/components/LeadProfilePanel";
 import { supabase } from "@/lib/supabase";
 import GlobalHeader from "@/components/GlobalHeader";
@@ -70,7 +69,6 @@ function ContactosContent() {
 
     const isAsesor = user?.role === "Asesor";
     const isSuperAdmin = user?.role === "Super Administrador";
-    const canSeeMarketing = user?.role === "Super Administrador" || user?.role === "Administrador de Marketing";
     const canAddLead = true;
 
     async function fetchLeads(silent = false) {
@@ -337,7 +335,7 @@ function ContactosContent() {
                                         ← Anterior
                                     </button>
                                     <span className="px-3 py-1.5 text-xs font-bold text-[#1E2D40]">{pagina} / {totalPaginas}</span>
-                                    <button onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))} disabled={pagina === totalPaginas} className="px-3 py-1.5 text-xs font-bold bg-[#1E2D40] text-white rounded-lg disabled:opacity-30 transition-all">
+                                    <button onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))) disabled={pagina === totalPaginas} className="px-3 py-1.5 text-xs font-bold bg-[#1E2D40] text-white rounded-lg disabled:opacity-30 transition-all">
                                         Siguiente →
                                     </button>
                                 </div>
