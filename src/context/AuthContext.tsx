@@ -49,9 +49,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     init();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return;
-      
+      // INITIAL_SESSION is already handled by init() above — skip to avoid double loadProfile
+      if (event === 'INITIAL_SESSION') return;
+
       if (session?.user) {
         await loadProfile(session.user.id);
       } else {

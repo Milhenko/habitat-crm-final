@@ -47,7 +47,7 @@ export default function VentasPage() {
         query = query.eq('assigned_to_name', user?.name)
       }
       
-      const { data, error: fetchError } = await query.order('created_at', { ascending: false })
+      const { data, error: fetchError } = await query.order('created_at', { ascending: false }).limit(500)
       
       if (fetchError) {
         setError(fetchError.message)
@@ -69,12 +69,17 @@ export default function VentasPage() {
 
   useEffect(() => {
     if (user) {
+      let debounceTimer: ReturnType<typeof setTimeout>
       const channel = supabase.channel('leads_realtime')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, () => {
-          fetchLeads()
+          clearTimeout(debounceTimer)
+          debounceTimer = setTimeout(() => fetchLeads(), 800)
         })
         .subscribe()
-      return () => { supabase.removeChannel(channel) }
+      return () => {
+        clearTimeout(debounceTimer)
+        supabase.removeChannel(channel)
+      }
     }
   }, [user])
 
